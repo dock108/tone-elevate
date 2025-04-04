@@ -4,3 +4,4 @@ export default {
     autoprefixer: {}, // Add vendor prefixes for browser compatibility
   },
 } 
+ 
