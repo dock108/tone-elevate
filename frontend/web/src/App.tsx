@@ -4,8 +4,8 @@ import { Session, RealtimeChannel } from '@supabase/supabase-js';
 import PremiumSubscription from './components/PremiumSubscription'; // Import the component
 import UserPreferences from './components/UserPreferences'; // Import preferences component
 import ReactMarkdown from 'react-markdown'; // Import react-markdown
-// Removed App.css import as styles will be handled by Tailwind and index.css
-// import './App.css';
+// Import our minimized App.css with only essential styles
+import './App.css';
 
 // Vite exposes env variables prefixed with VITE_
 // const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'; // Kept for reference if needed
