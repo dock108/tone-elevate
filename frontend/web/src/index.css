@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+  Removed default Vite styles (:root, body, h1, button, etc.) 
+  as Tailwind's base styles (Preflight) handle necessary resets.
+  Add any custom base styles AFTER the directives if needed.
+*/
