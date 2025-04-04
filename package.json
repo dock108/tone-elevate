@@ -1,0 +1,14 @@
+{
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "supabase": "^2.20.5",
+    "tailwindcss": "^4.1.2"
+  },
+  "dependencies": {
+    "@react-native-picker/picker": "2.9.0",
+    "expo": "^52.0.44",
+    "expo-clipboard": "~7.0.1",
+    "react-markdown": "^10.1.0"
+  }
+}
