@@ -9,11 +9,116 @@
     const MAX_INPUT_LENGTH = 5000; // Max characters for user input
     const VALID_CONTEXTS = ["Documentation", "Email", "General Text", "GitHub Comment", "LinkedIn Post", "Teams Chat", "Text Message"];
     const VALID_OUTPUT_FORMATS = ["Raw Text", "Markdown"];
+    const DEFAULT_TONE = "professional but natural"; // Define default tone
 
     // Initialize OpenAI client
     const openai = new OpenAI({ apiKey: Deno.env.get('OPENAI_API_KEY') });
 
     console.log('generate-message (tone-suggest) function deployed!');
+
+    // --- Placeholder Parsing Function ---
+    // TODO: Implement actual parsing logic (e.g., using another LLM call)
+    /*async function parseUserInput(userInput: string): Promise<{ intent: string; tone: string; message: string }> {
+        console.log("Parsing user input (placeholder)...");
+        // Simulate parsing - replace with actual logic later
+        // Example: Extract intent/tone if explicitly mentioned, otherwise use defaults/input.
+        let intent = "Rewrite the provided text"; // Default intent
+        let tone = DEFAULT_TONE;
+        let message = userInput;
+
+        // Basic placeholder logic: Check for keywords (highly simplified)
+        const lowerInput = userInput.toLowerCase();
+        if (lowerInput.startsWith("write an email")) {
+            intent = "Write an email based on the following points";
+            message = userInput.substring("write an email".length).trim();
+        } else if (lowerInput.startsWith("apologize for")) {
+            intent = "Write an apology message";
+        }
+        // Add more sophisticated parsing here...
+
+        // Placeholder: Look for explicit tone mention (e.g., "make it casual")
+        const toneMatch = userInput.match(/make it (\w+)|tone: (\w+)/i);
+        if (toneMatch && toneMatch[1]) {
+            tone = toneMatch[1];
+            // Potentially remove the tone instruction from the message itself
+        } else if (toneMatch && toneMatch[2]) {
+            tone = toneMatch[2];
+        }
+
+
+        console.log(`Parsed (placeholder): Intent='${intent}', Tone='${tone}'`);
+        return { intent, tone, message };
+    }*/
+
+    // --- Actual Parsing Function using LLM ---
+    async function parseUserInput(userInput: string): Promise<{ intent: string; tone: string; message: string }> {
+        console.log("Parsing user input with LLM...");
+
+        const parsingSystemPrompt = `You are an expert text analysis assistant. Your task is to analyze the user's raw input and extract the core information needed to rewrite or generate a message. Identify the user's primary \"intent\" (what they want to achieve, e.g., \"Write a follow-up email\", \"Apologize for missing a meeting\", \"Rewrite this draft to be more polite\"), the desired \"tone\" (if specified, otherwise use null), and the essential \"message\" content (the user's draft text or key points). Return ONLY a valid JSON object with the keys \"intent\", \"tone\", and \"message\".
+
+Example:
+Input: \"follow up on the invoice i sent to Acme Corp last Tuesday\"
+Output: {\"intent\": \"Write a follow-up email about an invoice\", \"tone\": null, \"message\": \"invoice sent to Acme Corp last Tuesday\"}
+
+Input: \"this sounds too harsh: 'Your report is late.' make it softer\"
+Output: {\"intent\": \"Rewrite the provided text\", \"tone\": \"softer\", \"message\": \"Your report is late.\"}
+
+Input: \"write an email to marketing about the new campaign launch, make it exciting\"
+Output: {\"intent\": \"Write an email about the new campaign launch\", \"tone\": \"exciting\", \"message\": \"new campaign launch\"}
+        `;
+
+        const parsingUserPrompt = `Analyze the following user input and provide the JSON output:
+
+Input:
+"""
+${userInput}
+"""
+
+JSON Output:`;
+
+        try {
+            const completion = await openai.chat.completions.create({
+                model: 'gpt-4o', // Or a cheaper/faster model like gpt-3.5-turbo if preferred & sufficient
+                messages: [
+                    { role: 'system', content: parsingSystemPrompt },
+                    { role: 'user', content: parsingUserPrompt },
+                ],
+                max_tokens: 200,
+                temperature: 0.2, // Low temperature for factual extraction
+                response_format: { type: "json_object" }, // Request JSON output
+            });
+
+            const rawResponse = completion.choices[0]?.message?.content;
+            if (!rawResponse) {
+                throw new Error('Parsing LLM returned empty content.');
+            }
+
+            console.log("Raw JSON response from parsing LLM:", rawResponse);
+            const parsed = JSON.parse(rawResponse);
+
+            // Validate the parsed object structure
+            if (typeof parsed.intent !== 'string' || typeof parsed.message !== 'string') {
+                throw new Error('Invalid JSON structure received from parsing LLM.');
+            }
+
+            const intent = parsed.intent;
+            const tone = (typeof parsed.tone === 'string' && parsed.tone.trim() !== '') ? parsed.tone : DEFAULT_TONE;
+            const message = parsed.message;
+
+            console.log(`Parsed: Intent='${intent}', Tone='${tone}'`);
+            return { intent, tone, message };
+
+        } catch (error) {
+            console.error('Error during LLM parsing:', error);
+            // Fallback mechanism: If parsing fails, use basic defaults
+            console.warn('Falling back to default parsing due to error.');
+            return {
+                intent: "Process the provided text",
+                tone: DEFAULT_TONE,
+                message: userInput, // Pass the original input as the message
+            };
+        }
+    }
 
     serve(async (req) => {
       // 1. Handle CORS Preflight
@@ -53,12 +158,17 @@
         }
 
         // 3. Parse and Validate Request Body
-        const { text, tone, context, outputFormat } = await req.json();
-        if (!text || !tone || !context || !outputFormat) {
-          throw new Error('Missing required fields: text, tone, context, outputFormat');
+        // Expecting userInput, context, outputFormat primarily now
+        const { userInput, context, outputFormat } = await req.json();
+        // --- Deprecate direct 'text' and 'tone' inputs for single-shot mode ---
+        // const { text, tone, context, outputFormat } = await req.json();
+
+        // Validate required fields for the new flow
+        if (!userInput || !context || !outputFormat) {
+            throw new Error('Missing required fields: userInput, context, outputFormat');
         }
-        if ([text, tone, context, outputFormat].some(val => typeof val !== 'string')) {
-          throw new Error('Invalid input types: all fields must be strings');
+        if ([userInput, context, outputFormat].some(val => typeof val !== 'string')) {
+            throw new Error('Invalid input types: userInput, context, and outputFormat must be strings');
         }
         if (!VALID_CONTEXTS.includes(context)) {
             throw new Error(`Invalid context: ${context}. Must be one of: ${VALID_CONTEXTS.join(', ')}`);
@@ -66,10 +176,15 @@
          if (!VALID_OUTPUT_FORMATS.includes(outputFormat)) {
             throw new Error(`Invalid outputFormat: ${outputFormat}. Must be one of: ${VALID_OUTPUT_FORMATS.join(', ')}`);
         }
-        if (text.length > MAX_INPUT_LENGTH) {
+        if (userInput.length > MAX_INPUT_LENGTH) {
           throw new Error(`Input text exceeds maximum length of ${MAX_INPUT_LENGTH} characters.`);
         }
-        console.log(`Processing request: Tone=${tone}, Context=${context}, Format=${outputFormat}, Length=${text.length}, User=${userId ?? 'anonymous'}`);
+        // console.log(`Processing request: Tone=${tone}, Context=${context}, Format=${outputFormat}, Length=${text.length}, User=${userId ?? 'anonymous'}`);
+        console.log(`Processing request: Context=${context}, Format=${outputFormat}, InputLength=${userInput.length}, User=${userId ?? 'anonymous'}`);
+
+        // --- New Step: Parse User Input ---
+        const { intent, tone, message } = await parseUserInput(userInput);
+        // Now we have intent, tone, and the core message to work with.
 
         // 4. Check User Subscription Status & Rate Limit (ONLY if user is logged in)
         let usageUpdate = {}; // Initialize usage update object
@@ -124,17 +239,11 @@
         }
 
         // 5. Construct Refined OpenAI Prompt for Generation
-        const systemPrompt = `You are ToneSmith, an expert communication assistant. Your primary goal is to transform the user's raw input into a complete, polished message that is **structurally and stylistically appropriate** for the specified context. Adhere strictly to the requested tone and output format.
+        //    Using the parsed intent, tone, and message
+        const systemPrompt = `You are ToneSmith, a writing assistant focused on clear, natural, and effective communication. Your goal is to help the user achieve their communication objective (intent) by rewriting or generating a message based on their input.\n\n**Core Principles:**\n1.  **Clarity & Conciseness:** Produce clean, easy-to-understand text.\n2.  **Natural Language & Anti-Cliché:** Sound human. **Aggressively avoid** jargon and tired corporate clichés. **Specifically, DO NOT use phrases like \"hope this finds you well,\" \"per my last email,\" \"circle back,\" or similar empty pleasantries**, unless the user's input explicitly demands them for a specific effect.\n3.  **Intent-Driven:** Focus squarely on achieving the user's specified goal: \`${intent}\`.\n4.  **Tone & Context Adherence:** Strictly follow the requested \`tone\` and adapt the message's structure (greetings, sign-offs, length, formality) to the specified \`context\` (e.g., Email, Teams Chat, etc.). **For Emails, get straight to the point; avoid generic opening fluff.**\n\n**Output Requirements:**\n-   **Message Only:** Output *only* the final generated message.\n-   **No Chatter:** Do *not* include introductions (e.g., \"Here's the draft:\"), explanations, or apologies.`;
 
-**Crucially, use the specified 'context' to guide the message structure:**
-- For contexts like 'Email' or formal 'Documentation', include appropriate greetings/closings if implied or necessary.
-- For contexts like 'Teams Chat' or 'Text Message', prioritize brevity and omit formal greetings/closings unless the user's input specifically dictates them.
-- For 'GitHub Comment' or 'LinkedIn Post', adapt to the common conventions of those platforms.
-- For 'General Text', assume minimal structural additions are needed.
-
-**Output ONLY the final generated message content.** Do not include any extra conversational text, introductions (like "Hey," or "Here is the message:"), explanations, labels, or meta-commentary.`;
-
-        const userPrompt = `Based on the user's raw input below, craft a **complete and contextually suitable** message.
+        // Adapt user prompt to use parsed components
+        const userPrompt = `Based on the user's goal ("${intent}") and their raw input below, craft a **complete and contextually suitable** message.
 
 Tone: ${tone}
 Context: ${context}
@@ -142,9 +251,9 @@ Output Format: ${outputFormat}
 
 Remember to adapt the message structure (greetings, closings, length, etc.) to fit the '${context}'.
 
-User's Raw Input:
+User's Raw Input/Message:
           """
-          ${text}
+          ${message}
           """
 
           Generated Message:
@@ -163,12 +272,30 @@ User's Raw Input:
           // No response_format needed, we want raw text/markdown
         });
 
-        const generatedMessage = completion.choices[0]?.message?.content?.trim() ?? null;
+        let generatedMessage = completion.choices[0]?.message?.content?.trim() ?? null;
         console.log('OpenAI Generated Message (raw):', generatedMessage);
 
         if (!generatedMessage) {
           throw new Error('AI did not generate a message.');
         }
+
+        // --- New Step: Post-Process the Output ---
+        // Remove common AI introductory phrases, even though the prompt discourages them.
+        const prefixesToRemove = [
+            /^Here's the message:/i,
+            /^Here's a draft:/i,
+            /^Okay, here is the draft:/i,
+            /^Sure, here's the message:/i,
+            /^Here is the message you requested:/i,
+            /^Generated Message:/i, // In case the model echoes the prompt label
+            // Add more prefixes as needed
+        ];
+
+        for (const prefixRegex of prefixesToRemove) {
+            generatedMessage = generatedMessage.replace(prefixRegex, '').trim();
+        }
+        console.log('OpenAI Generated Message (post-processed):', generatedMessage);
+        // --- End Post-Processing ---
 
         // 7. Update Usage Count (if necessary and applicable) AFTER successful AI call
         // Only update if userId is valid and usageUpdate has keys (i.e., logged-in free user under limit)

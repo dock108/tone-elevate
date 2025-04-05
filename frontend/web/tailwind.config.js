@@ -21,10 +21,10 @@ export default {
         // 'neutral-200': '#E5E7EB',
       },
       // Optionally define font families if not using Tailwind defaults
-      // fontFamily: {
-      //   sans: ['Inter', 'sans-serif'], // Example for primary body font
-      //   heading: ['Poppins', 'sans-serif'], // Example for headings
-      // },
+      fontFamily: {
+        // Set Inter as the default sans font, including system fallbacks
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', "Segoe UI", 'Roboto', "Helvetica Neue", 'Arial', "Noto Sans", 'sans-serif', "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"],
+      },
     },
   },
   plugins: [

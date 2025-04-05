@@ -10,6 +10,7 @@ This application leverages AI (specifically GPT-4o) to take user input and gener
 
 -   AI-powered message generation based on user input, tone, context (`Email`, `Teams Chat`, `LinkedIn Post`, `GitHub Comment`, `General Text`, `Documentation`, `Text Message`), and output format (`Raw Text`/`Markdown`).
 -   Basic message generation available without login.
+-   **Polished single-column UI** for the free tier experience, resembling modern SaaS tools (updated styles for inputs, buttons, containers, typography).
 -   Clear display of generated message with copy-to-clipboard.
 -   User accounts (Supabase Auth) with optional preferences/template saving.
 -   Subscription management (Freemium model via Stripe) for potential future premium features (currently, logged-in free users have a daily limit).
@@ -18,7 +19,7 @@ This application leverages AI (specifically GPT-4o) to take user input and gener
 
 -   **Freemium Model:** Basic features are free.
 -   **Premium Subscription:** Access to advanced AI models, unlimited usage, more template slots, and priority support. Implemented via Stripe.
--   **Initial Ad Integrations:** Exploring unobtrusive ad placements in the free tier.
+-   **Initial Ad Integrations:** Ad placeholder and "Upgrade to Pro" CTA added to the free tier UI.
 
 ## Technical Stack
 

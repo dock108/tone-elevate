@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Frontend (Web):** Tailwind CSS dependency and configuration files (`tailwind.config.js`, `postcss.config.js`).
 - **Frontend (Web):** `@tailwindcss/postcss` dependency.
 - **Project:** `engines` field specifying Node.js >= v21 to `frontend/web/package.json`.
+- **Backend (Edge Function `tone-suggest`):** Input parsing step using a secondary LLM call to extract intent, tone, and message from raw `userInput`.
+- **Backend (Edge Function `tone-suggest`):** Post-processing step to remove common AI introductory phrases from the generated output.
 
 ### Changed
 - **Project:** Migrated backend from Node.js/Express/Prisma to Supabase (Database, Auth, Edge Functions).
@@ -22,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backend (Edge Function `tone-suggest`):** Added `Documentation` and `Text Message` to valid contexts.
 - **Backend (Edge Function `tone-suggest`):** Modified authentication logic to allow anonymous requests while still checking limits for logged-in users.
 - **Backend (Edge Function `tone-suggest`):** Refined OpenAI prompt to improve contextual structure adaptation.
+- **Backend (Edge Function `tone-suggest`):** Further refined the system prompt for generation to more aggressively target and forbid specific clichés (e.g., "hope this finds you well") and generic email opening fluff.
 - **Frontend (Web & Mobile):** Added `Documentation` and `Text Message` context options and alphabetized dropdowns.
 - **Frontend (Web):** Refactored `App.tsx` structure and styling using Tailwind CSS utility classes.
 - **Frontend (Web):** Updated `postcss.config.js` to use `@tailwindcss/postcss`.
@@ -29,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Project:** Updated `README.md` and `TODO.md` with recent changes.
 - **Project:** Updated root `.gitignore` file with comprehensive rules.
 - **Frontend (Web):** Attempted various fixes for Tailwind CSS styles not applying (clearing cache, updating configs).
+- **Backend (Edge Function `tone-suggest`):** Modified the primary input from separate `text` and `tone` fields to a single `userInput` field.
+- **Backend (Edge Function `tone-suggest`):** Updated the system prompt for the main generation LLM call to emphasize natural language, avoid clichés, and focus on intent/tone/context adherence.
+- **Backend (Edge Function `tone-suggest`):** Updated the user prompt for the main generation LLM call to incorporate the parsed intent, tone, and message.
 
 ### Fixed
 - **Backend (Edge Function `tone-suggest`):** Corrected syntax error in `userPrompt` template literal.
