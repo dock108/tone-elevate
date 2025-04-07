@@ -4,11 +4,11 @@ ToneSmith is an AI-powered communication assistant designed to help users genera
 
 ## Overview
 
-This application leverages AI (specifically GPT-4o) to take user input and generate a complete, polished message in the desired tone (e.g., professional, casual, persuasive), tailored for a specific context (e.g., Email, Teams Chat, LinkedIn), and formatted as either raw text or Markdown. It also offers user accounts, subscription management, and template saving (preferences component).
+This application leverages AI (specifically GPT-4o) to take user input and generate a complete, polished message in the desired tone (e.g., professional, casual, persuasive), tailored for a specific context (e.g., Email, Teams Chat, LinkedIn), and formatted as either raw text or Markdown. It includes nuanced variations within the "Professional" tone category (e.g., C-Suite, Director, Peer Group, Boss, Subordinates, Interns) to better match the intended audience. It also offers user accounts, subscription management, and template saving (preferences component).
 
 ## MVP Features
 
--   AI-powered message generation based on user input, tone, context (`Email`, `Teams Chat`, `LinkedIn Post`, `GitHub Comment`, `General Text`, `Documentation`, `Text Message`), and output format (`Raw Text`/`Markdown`).
+-   AI-powered message generation based on user input, tone (including specific "Professional" variations), context (`Email`, `Teams Chat`, `LinkedIn Post`, `GitHub Comment`, `General Text`, `Documentation`, `Text Message`), and output format (`Raw Text`/`Markdown`).
 -   Basic message generation available without login.
 -   **Polished single-column UI** for the free tier experience, resembling modern SaaS tools (updated styles for inputs, buttons, containers, typography).
 -   Clear display of generated message with copy-to-clipboard.

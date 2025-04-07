@@ -11,11 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Project:** Initial Supabase directory structure (`supabase/migrations`, `supabase/functions`).
 - **Project:** Supabase client library (`@supabase/supabase-js`) to frontend projects.
 - **Project:** Updated `.env.example` files for frontends to include Supabase variables.
-- **Frontend (Web):** Tailwind CSS dependency and configuration files (`tailwind.config.js`, `postcss.config.js`).
-- **Frontend (Web):** `@tailwindcss/postcss` dependency.
+- **Frontend (Web):** Tailwind CSS (v3) dependency and configuration files (`tailwind.config.js`, `postcss.config.js`).
+- **Frontend (Web):** `@tailwindcss/postcss` and `tailwindcss` dependencies.
+- **Frontend (Web):** `@tailwindcss/typography` plugin for Markdown styling.
 - **Project:** `engines` field specifying Node.js >= v21 to `frontend/web/package.json`.
 - **Backend (Edge Function `tone-suggest`):** Input parsing step using a secondary LLM call to extract intent, tone, and message from raw `userInput`.
 - **Backend (Edge Function `tone-suggest`):** Post-processing step to remove common AI introductory phrases from the generated output.
+- **Frontend (Web):** Ad placeholder slots (right sidebar and fixed bottom banner).
+- **Frontend (Web):** Hover, active, focus, and disabled states with transitions for buttons and input fields.
+- **Frontend (Web):** Improved loading spinner within the Generate Message button.
+- **Frontend (Web):** Fade-in transition for the generated message section.
+- **Backend (Edge Function `tone-suggest`):** Recipient-specific tone variations for "Professional" (C-Suite, Director, Boss, Peer Group, Subordinates, Interns) with tailored AI instructions.
+- **Backend:** Centralized tone registry (`supabase/functions/_shared/tones.ts`) defining tone IDs, labels, and specific instructions.
 
 ### Changed
 - **Project:** Migrated backend from Node.js/Express/Prisma to Supabase (Database, Auth, Edge Functions).
@@ -26,22 +33,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backend (Edge Function `tone-suggest`):** Refined OpenAI prompt to improve contextual structure adaptation.
 - **Backend (Edge Function `tone-suggest`):** Further refined the system prompt for generation to more aggressively target and forbid specific clichés (e.g., "hope this finds you well") and generic email opening fluff.
 - **Frontend (Web & Mobile):** Added `Documentation` and `Text Message` context options and alphabetized dropdowns.
-- **Frontend (Web):** Refactored `App.tsx` structure and styling using Tailwind CSS utility classes.
-- **Frontend (Web):** Updated `postcss.config.js` to use `@tailwindcss/postcss`.
-- **Frontend (Web):** Removed application-specific styles from `App.css`.
+- **Frontend (Web):** Major UI/UX redesign in `App.tsx` implementing modern styling, branding, colors, typography, and layout using Tailwind CSS.
+- **Frontend (Web):** Reorganized layout into Header, Input Section, Config Section, Output Section.
+- **Frontend (Web):** Updated button styles and added loading/copied feedback states.
+- **Frontend (Web):** Implemented two-column layout (main content + right ad sidebar) on wider screens.
+- **Frontend (Web):** Configured PostCSS (`postcss.config.js`) and Vite (`vite.config.ts`) for Tailwind v3.
+- **Frontend (Web):** Removed application-specific styles from `App.css` in favor of Tailwind.
 - **Project:** Updated `README.md` and `TODO.md` with recent changes.
 - **Project:** Updated root `.gitignore` file with comprehensive rules.
-- **Frontend (Web):** Attempted various fixes for Tailwind CSS styles not applying (clearing cache, updating configs).
 - **Backend (Edge Function `tone-suggest`):** Modified the primary input from separate `text` and `tone` fields to a single `userInput` field.
 - **Backend (Edge Function `tone-suggest`):** Updated the system prompt for the main generation LLM call to emphasize natural language, avoid clichés, and focus on intent/tone/context adherence.
 - **Backend (Edge Function `tone-suggest`):** Updated the user prompt for the main generation LLM call to incorporate the parsed intent, tone, and message.
+- **Backend (Edge Function `tone-suggest`):** Refactored to use the shared tone registry, improving fallback logic to use a default tone if parsing fails or the tone is invalid.
+- **Backend (Edge Function `tone-suggest`):** Separated message generation logic into a dedicated `generateMessage` function.
+- **Backend (Edge Function `tone-suggest`):** Increased `MAX_INPUT_LENGTH` to 8192 characters.
+- **Frontend (Web):** Updated tone dropdown in `App.tsx` to use structured `id`/`label` options and list professional tones hierarchically.
+- **Frontend (Web):** Set default selected tone to "Professional - Boss.
 
 ### Fixed
 - **Backend (Edge Function `tone-suggest`):** Corrected syntax error in `userPrompt` template literal.
+- **Frontend (Web):** Installed missing `tailwindcss` dependency.
+- **Frontend (Web):** Resolved build errors in `App.tsx` related to unused variables/imports and incorrect `ReactMarkdown` styling props after initial Tailwind refactor.
+- **Frontend (Web):** Downgraded Tailwind CSS from v4 alpha to stable v3 (`^3.4.6`) to resolve build errors and issues with responsive styles not applying.
+- **Frontend (Web):** Corrected PostCSS configuration for Tailwind v3.
+- **Frontend (Web):** Resolved Vite `command not found` error by cleaning cache and reinstalling dependencies.
+- **Frontend (Web):** Ensured Tailwind CSS styles (including responsive variants) are correctly applied.
+- **Frontend (Web):** Added padding to generated message content area to prevent text overlapping the copy button.
+- **Backend (Edge Function `tone-suggest`):** Corrected parsing error in `_shared/tones.ts` caused by escaped newline characters during file creation.
 
 ### Removed
 - **Backend:** Removed `backend/` directory and all Node.js/Express/Prisma code.
 - **Backend:** Removed backend-specific entries from `.env.example` (now handled by Supabase secrets).
+- **Frontend (Web):** Removed floating tooltip feedback for copy-to-clipboard (using button state only).
 
 ## [0.4.0] - YYYY-MM-DD <PLACEHOLDER_DATE>
 

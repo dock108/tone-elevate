@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabaseClient'; // Import supabase client
 import { Session, RealtimeChannel } from '@supabase/supabase-js';
-import PremiumSubscription from './components/PremiumSubscription'; // Import the component
-import UserPreferences from './components/UserPreferences'; // Import preferences component
+// import PremiumSubscription from './components/PremiumSubscription'; // Import the component - TS6133 unused
+// import UserPreferences from './components/UserPreferences'; // Import preferences component - TS6133 unused
 import ReactMarkdown from 'react-markdown'; // Import react-markdown
 // Import our minimized App.css with only essential styles
 import './App.css';
@@ -11,109 +11,19 @@ import './App.css';
 // const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'; // Kept for reference if needed
 
 // --- Auth Component --- (Refined Tailwind Styles)
-interface AuthProps {
-  onClose: () => void;
-}
-const Auth: React.FC<AuthProps> = ({ onClose }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert(`Login Error: ${error.message}`);
-    if (!error) onClose();
-    setLoading(false);
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) alert(`Sign Up Error: ${error.message}`);
-    else alert('Signup successful! Please check your email to verify.');
-    // Don't auto-close on signup success, user needs to verify email
-    setLoading(false);
-  };
-
-  return (
-    // Modal Backdrop
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75 p-4 transition-opacity duration-300 ease-in-out">
-      {/* Modal Content */}
-      <div className="relative w-full max-w-md transform rounded-xl bg-white p-6 shadow-2xl transition-all duration-300 ease-in-out dark:bg-gray-800 sm:p-8">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 rounded-full p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-          aria-label="Close modal"
-        >
-          <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-        </button>
-
-        <h2 className="mb-6 text-center text-2xl font-semibold text-gray-900 dark:text-gray-100">
-          Login or Sign Up
-        </h2>
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-base shadow-sm transition focus:border-deep-blue focus:outline-none focus:ring-1 focus:ring-deep-blue dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-teal-aqua dark:focus:ring-teal-aqua"
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              placeholder="Your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-base shadow-sm transition focus:border-deep-blue focus:outline-none focus:ring-1 focus:ring-deep-blue dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-teal-aqua dark:focus:ring-teal-aqua"
-            />
-          </div>
-          <div className="flex flex-col space-y-3 pt-4 sm:flex-row sm:space-y-0 sm:space-x-4">
-            <button
-              type="submit"
-              disabled={loading}
-              onClick={handleLogin}
-              className="flex-1 transform rounded-lg bg-deep-blue px-5 py-2.5 text-sm font-semibold text-white shadow-md transition duration-150 ease-in-out hover:scale-105 hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-deep-blue focus:ring-offset-2 active:scale-95 disabled:opacity-60 dark:focus:ring-offset-gray-800"
-            >
-              {loading ? 'Processing...' : 'Login'}
-            </button>
-            <button
-              type="button"
-              disabled={loading}
-              onClick={handleSignup}
-              className="flex-1 transform rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-md transition duration-150 ease-in-out hover:scale-105 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-deep-blue focus:ring-offset-2 active:scale-95 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-offset-gray-800"
-            >
-              {loading ? 'Processing...' : 'Sign Up'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
+// interface AuthProps { // TS6196 unused interface
+//   onClose: () => void;
+// }
+// const Auth: React.FC<AuthProps> = ({ onClose }) => { // TS6133 unused component
+// ... commented out Auth component logic ...
+// }; // End of commented out Auth component
 
 // Main App Component
 function App() {
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<any | null>(null); // State for user profile
-  const [loadingProfile, setLoadingProfile] = useState(true); // Loading state for profile
-  const [showAuth, setShowAuth] = useState(false); // State to toggle Auth modal
+  // const [profile, setProfile] = useState<any | null>(null); // State for user profile - TS6133 unused
+  // const [loadingProfile, setLoadingProfile] = useState(true); // Loading state for profile - TS6133 unused
+  // const [showAuth, setShowAuth] = useState(false); // State to toggle Auth modal - TS6133 unused
   const [text, setText] = useState<string>('');
   const [tone, setTone] = useState<string>('professional'); // Example tone
   // --- New State Variables ---
@@ -124,6 +34,51 @@ function App() {
   const [isGenerating, setIsGenerating] = useState<boolean>(false); // Renamed from isSuggesting
   const [generationError, setGenerationError] = useState<string | null>(null); // Renamed from suggestionError
   const [copySuccess, setCopySuccess] = useState<boolean>(false); // State for copy feedback
+  const [userInput, setUserInput] = useState<string>(''); // User's primary input
+
+  // Define tone options mirroring the structure in the backend for consistency
+  const toneOptions = [
+    // Professional Tones (Hierarchical)
+    { id: "Professional - C-Suite", label: "Professional - C-Suite" },
+    { id: "Professional - Director", label: "Professional - Director" },
+    { id: "Professional - Boss", label: "Professional - Boss" },
+    { id: "Professional - Peer Group", label: "Professional - Peer Group" },
+    { id: "Professional - Subordinates", label: "Professional - Subordinates" },
+    { id: "Professional - Interns", label: "Professional - Interns" },
+    // Other Tones (Alphabetical - consider sorting if needed, or keep manual for specific order)
+    { id: "Casual", label: "Casual" },
+    { id: "Confident", label: "Confident" },
+    { id: "Direct", label: "Direct" },
+    { id: "Empathetic", label: "Empathetic" },
+    { id: "Enthusiastic", label: "Enthusiastic" },
+    { id: "Formal", label: "Formal" },
+    { id: "Friendly", label: "Friendly" },
+    { id: "Humorous", label: "Humorous" },
+    { id: "Informative", label: "Informative" },
+    { id: "Inquisitive", label: "Inquisitive" },
+    { id: "Motivational", label: "Motivational" },
+    { id: "Neutral", label: "Neutral" },
+    { id: "Persuasive", label: "Persuasive" },
+    { id: "Respectful", label: "Respectful" },
+    { id: "Supportive", label: "Supportive" },
+    { id: "Urgent", label: "Urgent" },
+  ];
+
+  // Frontend constant for input length validation/display
+  const MAX_INPUT_LENGTH = 8192;
+
+  const contextOptions = [
+    'Documentation',
+    'Email',
+    'General Text',
+    'GitHub Comment',
+    'LinkedIn Post',
+    'Teams Chat',
+    'Text Message',
+  ].sort();
+
+  const [selectedTone, setSelectedTone] = useState<string>(toneOptions[2].id); // Default to 'Professional - Boss'
+  const [selectedContext, setSelectedContext] = useState<string>(contextOptions[1]); // Default to Email
 
   // --- Renamed and Updated API Call Handler ---
   const handleGenerateMessage = async () => {
@@ -185,7 +140,7 @@ function App() {
     try {
       await navigator.clipboard.writeText(generatedMessage);
       setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000); // Hide message after 2s
+      setTimeout(() => setCopySuccess(false), 3000);
       console.log('Message copied to clipboard!');
     } catch (err) {
       console.error('Failed to copy text: ', err);
@@ -195,7 +150,7 @@ function App() {
 
   // Function to fetch user profile
   const fetchProfile = async (userId: string) => {
-    setLoadingProfile(true);
+    // setLoadingProfile(true);
     try {
       const { data, error, status } = await supabase
         .from('profiles')
@@ -208,17 +163,17 @@ function App() {
       }
 
       if (data) {
-        setProfile(data);
+        // setProfile(data); // TS6133 profile is unused
         console.log('User profile loaded:', data);
       } else {
          console.log('No profile found for user.');
-         setProfile({ subscription_status: 'free' }); // Assume free
+         // setProfile({ subscription_status: 'free' }); // Assume free - TS6133 profile is unused
       }
     } catch (error) {
       alert(`Error loading profile: ${(error as Error).message}`);
-      setProfile(null);
+      // setProfile(null); // TS6133 profile is unused
     } finally {
-      setLoadingProfile(false);
+      // setLoadingProfile(false);
     }
   };
 
@@ -231,7 +186,7 @@ function App() {
       if (session?.user?.id) {
         fetchProfile(session.user.id);
       } else {
-        setLoadingProfile(false);
+        // setLoadingProfile(false);
       }
     });
 
@@ -249,7 +204,7 @@ function App() {
                 { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${session.user.id}` },
                 (payload) => {
                   console.log('Profile updated via webhook! Reloading profile:', payload.new);
-                  setProfile(payload.new);
+                  // setProfile(payload.new); // TS6133 profile is unused
                 }
               )
               .subscribe((status, err) => {
@@ -262,8 +217,8 @@ function App() {
              console.log('Attempted profile subscription setup.');
         }
       } else {
-        setProfile(null);
-        setLoadingProfile(false);
+        // setProfile(null); // TS6133 profile is unused
+        // setLoadingProfile(false);
         // Unsubscribe if channel exists
         if (profileSubscription) {
           supabase.removeChannel(profileSubscription)
@@ -276,7 +231,7 @@ function App() {
     });
 
     // Close auth modal if user logs in/out
-    if (session) setShowAuth(false);
+    if (session) // setShowAuth(false);
 
     // Cleanup Listeners
     return () => {
@@ -287,284 +242,251 @@ function App() {
     };
   }, []);
 
-  // Helper to check subscription status
-  const isPremium = profile?.subscription_status === 'premium' || profile?.subscription_status === 'active';
+  // Determine if the user is premium based on profile status
+  // const isPremium = profile?.subscription_status === 'premium' || profile?.subscription_status === 'active'; // TS6133 unused
+
+  // --- Dynamic Header Content ---
+  // const renderHeaderContent = () => { // TS6133 unused function
+    // ... existing code ...
+  // };
 
   // --- Refined Tailwind JSX --- //
   return (
     // Main container with light gray background
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-900 dark:bg-gray-900 dark:text-gray-200">
-      
-      {/* Header - Updated to include navigation */}
-      <header className="w-full bg-white border-b border-gray-200 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          {/* Applying App Title style */}
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">ToneSmith</h1>
-          {/* Basic Nav Links - Hidden on small screens */}
-          <nav className="space-x-6 hidden sm:block">
-            <a href="#" className="text-sm text-gray-600 hover:text-black dark:text-gray-300 dark:hover:text-white">About</a>
-            <a href="#" className="text-sm text-gray-600 hover:text-black dark:text-gray-300 dark:hover:text-white">Upgrade</a>
-            <a href="#" className="text-sm text-gray-600 hover:text-black dark:text-gray-300 dark:hover:text-white">History</a>
-          </nav>
-          {/* Placeholder for potential mobile menu button if needed later */}
-          {/* <button className="sm:hidden">Menu</button> */}
-        </div>
+    <div className="min-h-screen bg-gray-100 font-sans text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+
+      {/* Header */}
+      <header className="w-full py-8 text-center">
+        {/* App Title - Using Deep Blue */}
+        <h1 className="text-4xl font-bold text-deep-blue dark:text-teal-aqua">
+          ToneSmith
+        </h1>
+        {/* Tagline */}
+        <p className="mt-1 text-lg text-gray-600 dark:text-gray-400">
+          Polished Messages. Perfect Tone. Instantly.
+        </p>
       </header>
-      
-      {/* Main content - Centered, max-w-2xl, with padding */}
-      <main className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6 lg:px-8">
-        
-        {/* Vertical stack for all content blocks */}
-        <div className="space-y-8"> {/* Increased spacing between major blocks */}
-          
-          {/* Hero section - Applying App Title style */}
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white sm:text-4xl">
-              Fine-tune your message
-            </h2>
-            {/* Ensure leading-relaxed on paragraph */}
-            <p className="mx-auto mt-3 max-w-xl text-lg leading-relaxed text-gray-500 dark:text-gray-400">
-              Transform your draft into a perfectly toned message for any context.
-            </p>
-          </div>
-          
-          {/* Input Form Card - Apply container styles: rounded-2xl, shadow-lg */}
-          <div className="overflow-hidden rounded-2xl bg-white p-6 shadow-lg dark:bg-gray-800">
-            {/* Use space-y for inner form elements */}
-            <div className="space-y-6">
-              
-              {/* Text area */} 
-              <div>
-                {/* Applying new Label style */}
-                <label htmlFor="message-input" className="block text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide dark:text-gray-300">
-                  Enter Your Message
+
+      {/* Main content wrapper - Wider, Flex layout for sidebar */}
+      <div className="mx-auto w-full max-w-6xl px-4 pb-24 sm:px-6 lg:px-8">
+        <div className="flex flex-col md:flex-row md:space-x-8">
+
+          {/* Main content area - Takes up 3/4 width on medium+ screens */}
+          <main className="w-full md:w-3/4">
+            {/* Vertical stack for all content blocks */}
+            <div className="space-y-10"> {/* Increased spacing between major blocks */}
+
+              {/* Section 1: Enter Your Message */}
+              <section>
+                <label htmlFor="user-input" className="mb-2 block text-lg font-semibold text-gray-700 dark:text-gray-300">
+                  1. Enter Your Message
                 </label>
                 <textarea
-                  id="message-input" 
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder="Type or paste your draft message here..."
-                  rows={7}
-                  // Applying exact Textarea Styling from request
-                  className="w-full p-4 rounded-xl border border-gray-300 shadow-sm focus:border-black focus:ring-black text-base leading-relaxed text-gray-800 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-gray-400 dark:focus:ring-gray-400 dark:placeholder:text-gray-500"
+                  id="user-input"
+                  rows={8}
+                  className="w-full rounded-lg border border-gray-300 p-4 text-base shadow-sm transition duration-200 ease-in-out placeholder:italic placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-aqua dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:ring-teal-aqua"
+                  placeholder="Write your unfiltered thoughts or rough draft here..."
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  maxLength={MAX_INPUT_LENGTH} // Enforce max length
                 />
-              </div>
-              
-              {/* Tone Selector */} 
-              <div>
-                {/* Applying new Label style */}
-                <label htmlFor="tone-select" className="block text-sm font-medium text-gray-700 mb-2 uppercase tracking-wide dark:text-gray-300">
-                  Select Tone
-                </label>
-                <select
-                  id="tone-select"
-                  value={tone}
-                  onChange={(e) => setTone(e.target.value)}
-                  // Applying exact Select Styling from request (keeping appearance-none)
-                  className="w-full p-3 rounded-xl border border-gray-300 shadow-sm focus:border-black focus:ring-black text-base text-gray-800 appearance-none dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:focus:border-gray-400 dark:focus:ring-gray-400"
-                  style={{ backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="%236b7280" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 8l4 4 4-4"/></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.7rem center', backgroundSize: '1.3em 1.3em' }}
-                >
-                  <option value="professional">Professional</option>
-                  <option value="casual">Casual</option>
-                  <option value="friendly">Friendly</option>
-                  <option value="formal">Formal</option>
-                  <option value="concise">Concise</option>
-                  <option value="persuasive">Persuasive</option>
-                  <option value="empathetic">Empathetic</option>
-                </select>
-              </div>
-              
-              {/* Advanced options (Context & Format) - Kept collapsible */}
-              <details className="group rounded-lg bg-gray-50 p-4 dark:bg-gray-700/40">
-                <summary className="cursor-pointer text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-                  <span className="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="mr-1.5 h-4 w-4 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                    Advanced Options
-                  </span>
-                </summary>
-                
-                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {/* Context Selector */}
+                {/* Character Count Indicator */}
+                <p className="mt-1 text-right text-sm text-gray-500 dark:text-gray-400">
+                  Characters: {userInput.length} / {MAX_INPUT_LENGTH}
+                </p>
+              </section>
+
+              {/* Section 2: Choose Tone & Context */}
+              <section>
+                <h3 className="mb-3 text-lg font-semibold text-gray-700 dark:text-gray-300">
+                  2. Choose Tone & Context
+                </h3>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  {/* Tone Dropdown */}
                   <div>
-                    {/* Applying Section Label style */}
-                    <label htmlFor="context-select" className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Context
-                    </label>
+                    <div className="relative mb-1 flex items-center space-x-1">
+                      <label htmlFor="tone-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Tone
+                      </label>
+                      <div className="group relative">
+                        <span className="cursor-help text-xs text-gray-400 dark:text-gray-500">ⓘ</span>
+                        <div className="absolute bottom-full left-1/2 z-10 mb-2 hidden w-48 -translate-x-1/2 transform rounded-md bg-gray-800 p-2 text-center text-xs text-white shadow-lg group-hover:block dark:bg-gray-200 dark:text-gray-800">
+                          Choose the emotional style or formality (e.g., Professional, Casual).
+                        </div>
+                      </div>
+                    </div>
                     <select
-                      id="context-select"
-                      value={context}
-                      onChange={(e) => setContext(e.target.value)}
-                      // Applying Input Text style (text-sm, text-gray-800) for smaller selects
-                      className="w-full appearance-none rounded-md border border-gray-300 bg-white py-2 px-3 pr-8 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                      style={{ backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="%236b7280" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 8l4 4 4-4"/></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.7rem center', backgroundSize: '1.2em 1.2em' }}
+                      id="tone-select"
+                      value={selectedTone}
+                      onChange={(e) => setSelectedTone(e.target.value)}
+                      className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 p-2.5 text-base shadow-sm transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-aqua dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-teal-aqua"
                     >
-                      <option value="Email">Email</option>
-                      <option value="Slack Message">Slack Message</option>
-                      <option value="Report">Report</option>
-                      <option value="Presentation">Presentation</option>
-                      <option value="General">General</option>
+                      {toneOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
                     </select>
                   </div>
-                  
-                  {/* Output Format Selector */}
+                  {/* Context Dropdown */}
                   <div>
-                    {/* Applying Section Label style */}
-                    <label htmlFor="format-select" className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Format
-                    </label>
+                    <div className="relative mb-1 flex items-center space-x-1">
+                      <label htmlFor="context-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Context
+                      </label>
+                      <div className="group relative">
+                        <span className="cursor-help text-xs text-gray-400 dark:text-gray-500">ⓘ</span>
+                        <div className="absolute bottom-full left-1/2 z-10 mb-2 hidden w-48 -translate-x-1/2 transform rounded-md bg-gray-800 p-2 text-center text-xs text-white shadow-lg group-hover:block dark:bg-gray-200 dark:text-gray-800">
+                          Select where you'll use the message (e.g., Email, LinkedIn).
+                        </div>
+                      </div>
+                    </div>
+                    <select
+                      id="context-select"
+                      value={selectedContext}
+                      onChange={(e) => setSelectedContext(e.target.value)}
+                      className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 p-2.5 text-base shadow-sm transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-aqua dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-teal-aqua"
+                    >
+                      {contextOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* Output Format Dropdown */}
+                  <div>
+                    <div className="relative mb-1 flex items-center space-x-1">
+                      <label htmlFor="format-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Output Format
+                      </label>
+                      <div className="group relative">
+                        <span className="cursor-help text-xs text-gray-400 dark:text-gray-500">ⓘ</span>
+                        <div className="absolute bottom-full left-1/2 z-10 mb-2 hidden w-48 -translate-x-1/2 transform rounded-md bg-gray-800 p-2 text-center text-xs text-white shadow-lg group-hover:block dark:bg-gray-200 dark:text-gray-800">
+                          Choose plain text or Markdown formatting.
+                        </div>
+                      </div>
+                    </div>
                     <select
                       id="format-select"
                       value={outputFormat}
                       onChange={(e) => setOutputFormat(e.target.value)}
-                       // Applying Input Text style (text-sm, text-gray-800) for smaller selects
-                      className="w-full appearance-none rounded-md border border-gray-300 bg-white py-2 px-3 pr-8 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-                      style={{ backgroundImage: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20"><path stroke="%236b7280" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 8l4 4 4-4"/></svg>')`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.7rem center', backgroundSize: '1.2em 1.2em' }}
+                      className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 p-2.5 text-base shadow-sm transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-aqua dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-teal-aqua"
                     >
-                      <option value="Raw Text">Raw Text</option>
-                      <option value="Markdown">Markdown</option>
-                      <option value="JSON">JSON</option>
+                      <option>Raw Text</option>
+                      <option>Markdown</option>
                     </select>
                   </div>
                 </div>
-              </details>
-              
-              {/* Generate Button - Applying new styles */}
-              <div className="pt-2">
+              </section>
+
+              {/* Generate Message Button */}
+              <div className="text-center">
                 <button
                   onClick={handleGenerateMessage}
-                  disabled={isGenerating || !text.trim()}
-                  // Applying exact Button Styling from request
-                  className="w-full bg-black text-white py-3 px-5 rounded-xl text-sm font-medium hover:bg-gray-800 transition duration-150 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-200 dark:text-black dark:hover:bg-gray-300 dark:focus:ring-gray-400 dark:focus:ring-offset-gray-900"
+                  disabled={isGenerating}
+                  className="inline-flex transform items-center justify-center rounded-lg bg-teal-aqua px-6 py-3 text-base font-semibold text-white shadow-md transition duration-200 ease-in-out hover:scale-105 hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-teal-aqua focus:ring-offset-2 active:scale-95 active:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-gray-900"
                 >
                   {isGenerating ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="mr-2 h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <>
+                      <svg className="-ml-1 mr-3 h-5 w-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Generating Message...
-                    </span>
+                      Generating...
+                    </>
                   ) : (
                     'Generate Message'
                   )}
                 </button>
               </div>
-              
-              {/* Error Message (Positioned inside form card) */} 
-              {generationError && (
-                <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-600 dark:bg-red-900/30 dark:text-red-300" role="alert">
-                  <span className="font-medium">Error:</span> {generationError.replace('Error: ', '')}
-                </div>
-              )}
-            </div>
-          </div> {/* End Input Form Card */} 
-          
-          {/* Output Card - Apply container styles: rounded-xl, shadow-sm */}
-          {/* Show card structure even when loading or empty */}
-          {(generatedMessage || isGenerating || !generationError) && (
-            <div className="overflow-hidden rounded-xl bg-white p-6 shadow-sm dark:bg-gray-800">
-              {/* Adding optional Label */}
-              <p className="mb-3 text-sm font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Your Polished Message</p>
-              
-              <div className="flex items-center justify-between mb-4"> {/* Adjusted margin for label */} 
-                {/* Title moved below label, made smaller or removed if label is sufficient */}
-                {/* <h3 className="text-sm font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Generated Message</h3> */}
-                
-                {/* Copy Button */}
-                {generatedMessage && !isGenerating && (
-                  <button
-                    onClick={handleCopyToClipboard}
-                    title="Copy to Clipboard"
-                    // Position adjusted slightly with the new label
-                    className="ml-auto text-xs text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition duration-150 font-medium"
-                  >
-                    {copySuccess ? (
-                      <span className="flex items-center text-green-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Copied!
-                      </span>
-                    ) : (
-                      <span className="flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        Copy
-                      </span>
-                    )}
-                  </button>
-                )}
-              </div>
-              
-              {/* Output Content Area - Applying Output Text style, removing inner background */}
-              <div className="min-h-[200px] rounded-lg p-5 text-base leading-relaxed text-gray-900 dark:text-gray-100"> {/* Removed bg-gray-50, adjusted padding slightly */}
-                {isGenerating ? (
-                  // Loading State
-                  <div className="flex h-full min-h-[120px] items-center justify-center">
-                    <div className="text-center">
-                      <svg className="mx-auto h-8 w-8 animate-spin text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Generating your message...</p>
-                    </div>
-                  </div>
-                ) : generatedMessage ? (
-                   // Display Generated Message
-                   outputFormat === 'Markdown' ? (
-                    <ReactMarkdown className="prose prose-sm prose-gray max-w-none dark:prose-invert leading-relaxed">{generatedMessage}</ReactMarkdown>
-                  ) : (
-                    <pre className="whitespace-pre-wrap font-sans leading-relaxed">{generatedMessage}</pre>
-                  )
-                ) : (
-                   // Empty State (if not loading and no message)
-                   <div className="flex h-full min-h-[120px] items-center justify-center">
-                      <div className="text-center">
-                        <svg className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                        </svg>
-                        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                          Your generated message will appear here.
+
+              {/* Section 3: Generated Message (Conditional) */}
+              {(generatedMessage || generationError) && (
+                <section className="transition-opacity duration-300 ease-in-out">
+                  <h3 className="mb-4 text-xl font-semibold text-gray-700 dark:text-gray-300">
+                    3. Generated Message
+                  </h3>
+                  <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-6 shadow-sm dark:border-gray-600 dark:bg-gray-700">
+                    {generationError && (
+                      <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 dark:border-red-600 dark:bg-red-900">
+                        <p className="text-sm font-medium text-red-700 dark:text-red-200">
+                          {generationError}
                         </p>
                       </div>
-                   </div>
-                )}
+                    )}
+
+                    {generatedMessage && (
+                      <div className="min-h-[100px] pr-16">
+                        {outputFormat === 'Markdown' ? (
+                          <div className="prose prose-gray max-w-none dark:prose-invert leading-relaxed">
+                            <ReactMarkdown>{generatedMessage}</ReactMarkdown>
+                          </div>
+                        ) : (
+                          <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed text-gray-800 dark:text-gray-100">{generatedMessage}</pre>
+                        )}
+                      </div>
+                    )}
+
+                    {generatedMessage && (
+                      <div className="absolute top-4 right-4">
+                        <button
+                          onClick={handleCopyToClipboard}
+                          title="Copy to Clipboard"
+                          className={`inline-flex transform items-center rounded-md border px-3 py-1.5 text-sm font-medium shadow-sm transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-aqua focus:ring-offset-1 active:scale-95 dark:focus:ring-offset-gray-800 ${
+                            copySuccess
+                              ? 'border-transparent bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-700 dark:text-white dark:hover:bg-green-600'
+                              : 'border-gray-300 bg-gray-100 text-gray-700 hover:scale-105 hover:bg-gray-200 active:bg-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:active:bg-gray-500'
+                          }`}
+                        >
+                          {copySuccess ? (
+                            <>
+                              <svg className="-ml-0.5 mr-1.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                              </svg>
+                              Copied
+                            </>
+                          ) : (
+                            <>
+                              <svg className="-ml-0.5 mr-1.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+                              </svg>
+                              Copy
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
+            </div>
+          </main>
+
+          {/* Right Sidebar Ad Column - Takes up 1/4 width on medium+ screens */}
+          <aside className="mt-10 w-full md:mt-0 md:w-1/4">
+            <div className="sticky top-8 space-y-6"> {/* Makes the ad stick on scroll within its column */} 
+              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-200 p-6 text-center text-sm text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                Ad Placeholder
+                <br />
+                (Right Column)
+                <br />
+                (approx 25% width)
               </div>
+              {/* Can add more sticky elements here if needed */}
             </div>
-          )} 
+          </aside>
 
-          {/* Ad Placeholder Block - Added below output */}
-          <div className="rounded-xl border border-dashed border-gray-300 bg-gray-100 p-4 text-center text-sm text-gray-500 dark:border-gray-600 dark:bg-gray-700/50 dark:text-gray-400">
-            Placeholder: This space will show a relevant sponsored message.
-          </div>
+        </div> {/* End Flex container */}
+      </div> {/* End Main content wrapper */}
 
-          {/* Upgrade CTA Block - Added below ad */}
-          <div className="mt-4 rounded-xl bg-black p-4 text-center text-white dark:bg-gray-700">
-            <p className="text-sm"><span className="font-semibold">Need more features?</span> <a href="#" className="underline hover:text-gray-300 dark:hover:text-white">Upgrade to Pro</a> for enhanced tone options &amp; history.</p>
-          </div>
 
-        </div> {/* End Vertical Stack */} 
-      </main>
-      
-      {/* Footer */}
-      <footer className="mt-12 border-t border-gray-200 bg-white py-8 dark:border-gray-700 dark:bg-gray-800">
-        {/* Footer content remains the same */} 
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center md:flex md:items-center md:justify-between">
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              © {new Date().getFullYear()} ToneSmith • AI-Powered Communication Assistance
-            </p>
-            <div className="mt-4 flex justify-center space-x-6 md:mt-0">
-              <a href="#" className="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300">Terms</a>
-              <a href="#" className="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300">Privacy</a>
-              <a href="#" className="text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300">Contact</a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      {/* Bottom Fixed Ad Bar */}
+      <div className="fixed bottom-0 left-0 z-40 w-full border-t border-gray-300 bg-gray-200 p-3 text-center text-sm text-gray-600 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+        Persistent Ad Banner Placeholder
+      </div>
+
     </div>
   );
 }

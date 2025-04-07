@@ -1,1154 +1,563 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, TextInput, Button, SafeAreaView, Alert, ActivityIndicator, ScrollView, Pressable, Platform } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  Button,
+  SafeAreaView,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  Pressable,
+  Platform,
+  useColorScheme,
+} from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { supabase } from './lib/supabaseClient'; // Import supabase client
-import { Session } from '@supabase/supabase-js';
-import PremiumSubscription from './components/PremiumSubscription'; // Import the component
 import { Picker } from '@react-native-picker/picker'; // Import Picker
 import * as Clipboard from 'expo-clipboard'; // Import Clipboard
+import Markdown from 'react-native-markdown-display'; // Import Markdown display
 
-// TODO: Replace with actual environment variable handling (e.g., expo-constants)
-// const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
+// === Constants ===
+const MAX_INPUT_LENGTH = 8192;
+const toneOptions = [
+  // Professional Tones (Hierarchical)
+  { id: "Professional - C-Suite", label: "Professional - C-Suite" },
+  { id: "Professional - Director", label: "Professional - Director" },
+  { id: "Professional - Boss", label: "Professional - Boss" },
+  { id: "Professional - Peer Group", label: "Professional - Peer Group" },
+  { id: "Professional - Subordinates", label: "Professional - Subordinates" },
+  { id: "Professional - Interns", label: "Professional - Interns" },
+  // Other Tones (Alphabetical)
+  { id: "Casual", label: "Casual" },
+  { id: "Confident", label: "Confident" },
+  { id: "Direct", label: "Direct" },
+  { id: "Empathetic", label: "Empathetic" },
+  { id: "Enthusiastic", label: "Enthusiastic" },
+  { id: "Formal", label: "Formal" },
+  { id: "Friendly", label: "Friendly" },
+  { id: "Humorous", label: "Humorous" },
+  { id: "Informative", label: "Informative" },
+  { id: "Inquisitive", label: "Inquisitive" },
+  { id: "Motivational", label: "Motivational" },
+  { id: "Neutral", label: "Neutral" },
+  { id: "Persuasive", label: "Persuasive" },
+  { id: "Respectful", label: "Respectful" },
+  { id: "Supportive", label: "Supportive" },
+  { id: "Urgent", label: "Urgent" },
+];
+const contextOptions = [
+  'Documentation',
+  'Email',
+  'General Text',
+  'GitHub Comment',
+  'LinkedIn Post',
+  'Teams Chat',
+  'Text Message',
+].sort();
 
-// Placeholder Auth Component
-const Auth = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  // Sign in with email and password
-  const handleLogin = async () => {
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
-    });
-
-    if (error) Alert.alert('Login Error', error.message);
-    // Session update is handled by the onAuthStateChange listener in App component
-    setLoading(false);
-  };
-
-  // Sign up with email and password
-  const handleSignup = async () => {
-    setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email: email,
-      password: password,
-      // You can add additional metadata if needed for the trigger
-      // options: { data: { name: 'Your Name' } }
-    });
-
-    if (error) Alert.alert('Sign Up Error', error.message);
-    else Alert.alert('Sign Up Success', 'Please check your email for verification!');
-    // Session update is handled by the onAuthStateChange listener in App component
-    setLoading(false);
-  };
-
-  return (
-    <View style={styles.authContainer}>
-      <Text style={styles.authTitle}>Login or Sign Up</Text>
-      <TextInput
-        style={styles.authInput}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.authInput}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <View style={styles.authButtonContainer}>
-        <Button title="Login" onPress={handleLogin} disabled={loading} />
-        <Button title="Sign Up" onPress={handleSignup} disabled={loading} />
-      </View>
-    </View>
-  );
-};
-
-// --- Preferences Component --- (New)
-const UserPreferences = ({ userId }) => {
-  const [preferences, setPreferences] = useState<any | null>(null);
-  const [loadingPrefs, setLoadingPrefs] = useState(true);
-  const [prefError, setPrefError] = useState<string | null>(null);
-  const [templateName, setTemplateName] = useState('');
-  const [templateBody, setTemplateBody] = useState('');
-
-  // Fetch preferences
-  const fetchPreferences = async () => {
-    setLoadingPrefs(true);
-    setPrefError(null);
-    try {
-      // Fetch the first preference record for the user
-      const { data, error, status } = await supabase
-        .from('preferences')
-        .select('*')
-        .eq('user_id', userId)
-        .limit(1) // Get only the first one for this simple example
-        .maybeSingle(); // Returns null instead of error if no row found
-
-      if (error && status !== 406) throw error;
-
-      if (data) {
-        setPreferences(data);
-        setTemplateName(data.saved_template_name || '');
-        setTemplateBody(data.saved_template_body || '');
-        console.log('Preferences loaded:', data);
-      } else {
-        console.log('No preferences found for user, creating initial.');
-        // Optionally create a default preference record if none exists
-        const { data: newData, error: insertError } = await supabase
-            .from('preferences')
-            .insert({ user_id: userId, preferred_tone: 'professional' })
-            .select()
-            .single();
-        if (insertError) throw insertError;
-        setPreferences(newData);
-        setTemplateName('');
-        setTemplateBody('');
-      }
-    } catch (error) {
-      console.error('Error fetching/creating preferences:', error);
-      setPrefError(`Error loading preferences: ${error.message}`);
-      setPreferences(null);
-    } finally {
-      setLoadingPrefs(false);
-    }
-  };
-
-  // Save template
-  const handleSaveTemplate = async () => {
-    if (!preferences?.id) {
-        Alert.alert("Error", "Preferences not loaded yet.");
-        return;
-    }
-    setLoadingPrefs(true);
-     try {
-        const { error } = await supabase
-            .from('preferences')
-            .update({ saved_template_name: templateName, saved_template_body: templateBody })
-            .eq('id', preferences.id);
-        if (error) throw error;
-        Alert.alert("Success", "Template saved!");
-        fetchPreferences(); // Refresh data
-     } catch(error) {
-         console.error("Error saving template:", error);
-         Alert.alert("Error", `Failed to save template: ${error.message}`);
-         setLoadingPrefs(false);
-     }
-  };
-
-  // Delete template
-  const handleDeleteTemplate = async () => {
-     if (!preferences?.id) {
-        Alert.alert("Error", "Preferences not loaded yet.");
-        return;
-    }
-     setLoadingPrefs(true);
-     try {
-        const { error } = await supabase
-            .from('preferences')
-            .update({ saved_template_name: null, saved_template_body: null })
-            .eq('id', preferences.id);
-        if (error) throw error;
-        Alert.alert("Success", "Template deleted!");
-        fetchPreferences(); // Refresh data
-     } catch(error) {
-         console.error("Error deleting template:", error);
-         Alert.alert("Error", `Failed to delete template: ${error.message}`);
-         setLoadingPrefs(false);
-     }
-  };
-
-  useEffect(() => {
-    if (userId) {
-      fetchPreferences();
-    }
-  }, [userId]);
-
-  return (
-    <View style={styles.prefsContainer}>
-      <Text style={styles.prefsTitle}>My Template</Text>
-      {loadingPrefs ? (
-        <ActivityIndicator />
-      ) : prefError ? (
-        <Text style={styles.errorText}>{prefError}</Text>
-      ) : preferences ? (
-        <>
-          <TextInput
-            style={styles.prefsInput}
-            placeholder="Template Name (e.g., Meeting Follow-up)"
-            value={templateName}
-            onChangeText={setTemplateName}
-          />
-          <TextInput
-            style={[styles.prefsInput, styles.prefsTextarea]}
-            placeholder="Template Body..."
-            value={templateBody}
-            onChangeText={setTemplateBody}
-            multiline
-          />
-          <View style={styles.prefsButtonContainer}>
-            <Button title="Save Template" onPress={handleSaveTemplate} disabled={loadingPrefs} />
-            {(preferences.saved_template_name || preferences.saved_template_body) && (
-                <Button title="Delete Template" onPress={handleDeleteTemplate} disabled={loadingPrefs} color="#dc3545" />
-            )}
-          </View>
-        </>
-      ) : (
-         <Text>Could not load preferences.</Text>
-      )}
-    </View>
-  );
-};
-
-// Main App Component
+// === Main App Component ===
 export default function App() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<any | null>(null); // State to hold user profile
-  const [loadingProfile, setLoadingProfile] = useState(true); // Loading state for profile
-  const [text, setText] = useState('');
-  const [tone, setTone] = useState('professional'); // Example tone
-  // --- New State Variables ---
-  const [context, setContext] = useState('Email'); // Default context
-  const [outputFormat, setOutputFormat] = useState('Raw Text'); // Default output format
-  // --- Renamed State Variables ---
-  const [generatedMessage, setGeneratedMessage] = useState<string | null>(null); // Renamed from suggestions
-  const [isGenerating, setIsGenerating] = useState(false); // Renamed from isLoadingSuggestions
-  const [generationError, setGenerationError] = useState<string | null>(null); // Renamed from suggestionError
-  const [copySuccess, setCopySuccess] = useState<boolean>(false); // State for copy feedback
+  // --- State Variables ---
+  const [userInput, setUserInput] = useState('');
+  const [selectedTone, setSelectedTone] = useState<string>(toneOptions[2].id); // Default to 'Professional - Boss'
+  const [selectedContext, setSelectedContext] = useState<string>(contextOptions[1]); // Default to Email
+  const [outputFormat, setOutputFormat] = useState<string>('Raw Text'); // Default output format
+  const [generatedMessage, setGeneratedMessage] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState<boolean>(false);
+  const colorScheme = useColorScheme(); // Detect dark/light mode
 
-  // Function to fetch user profile
-  const fetchProfile = async (userId) => {
-    setLoadingProfile(true);
-    try {
-      const { data, error, status } = await supabase
-        .from('profiles')
-        .select(`subscription_status, name`) // Select needed fields
-        .eq('id', userId)
-        .single();
-
-      if (error && status !== 406) {
-        throw error; // Throw error if it's not a "No rows found" error
-      }
-
-      if (data) {
-        setProfile(data);
-        console.log('User profile loaded:', data);
-      } else {
-         console.log('No profile found for user, might be newly created.');
-         setProfile({ subscription_status: 'free' }); // Assume free if no profile yet
-      }
-    } catch (error) {
-      Alert.alert('Error loading profile', error.message);
-      setProfile(null);
-    } finally {
-      setLoadingProfile(false);
-    }
-  };
-
-  // --- Renamed and Updated API Call Handler ---
+  // --- Functions ---
   const handleGenerateMessage = async () => {
-    // Allow generation even if not logged in, function handles limits/errors
-    if (!text.trim()) {
+    if (!userInput.trim()) {
       Alert.alert("Input Required", "Please enter some text to generate a message.");
       return;
     }
 
-    console.log(`Invoking tone-suggest function for: Tone=${tone}, Context=${context}, Format=${outputFormat}`);
-    setIsGenerating(true); // Renamed
-    setGenerationError(null); // Renamed
-    setGeneratedMessage(null); // Clear previous message
-    setCopySuccess(false); // Reset copy feedback
+    console.log(`Invoking tone-suggest function: Tone=${selectedTone}, Context=${selectedContext}, Format=${outputFormat}`);
+    setIsGenerating(true);
+    setGenerationError(null);
+    setGeneratedMessage(null);
+    setCopySuccess(false);
 
     try {
-      // Call the Supabase Edge Function with updated parameters
       const { data, error: invokeError } = await supabase.functions.invoke('tone-suggest', {
-        // Body now contains text, tone, context, and outputFormat
-        body: { text, tone, context, outputFormat },
+        body: { userInput, context: selectedContext, outputFormat },
       });
 
-      if (invokeError) {
-         // Handle Supabase function invocation errors (network, permissions etc.)
-         console.error("Supabase function invocation error:", invokeError);
-         throw new Error(invokeError.message || 'Failed to connect to the generation service.');
-      }
+      if (invokeError) throw new Error(invokeError.message || 'Failed to connect to the generation service.');
+      if (data && data.error) throw new Error(data.error);
 
-      // Check if the function returned a specific error payload (e.g., rate limit)
-      if (data && data.error) {
-        console.error("Function returned error:", data.error);
-        // Check for specific rate limit error message from backend
-        if (data.error.includes("Daily generation limit")) {
-            Alert.alert("Limit Reached", data.error);
-        } else {
-            Alert.alert("Generation Error", data.error);
-        }
-        throw new Error(data.error); // Still throw to stop execution
-      }
-
-      // Expecting { generatedMessage: "..." } on success
       if (data && typeof data.generatedMessage === 'string') {
         setGeneratedMessage(data.generatedMessage);
         console.log('Message generated successfully.');
       } else {
-        console.error('Unexpected data format from function:', data);
         throw new Error('Received an unexpected response from the server.');
       }
+
     } catch (err) {
-      // Avoid showing alert again if it was already shown for a function error
-      if (!err.message.includes("Daily generation limit") && !(data && data.error)) {
-          Alert.alert("Error", `Failed to generate message: ${err.message}`);
-      }
       console.error("Error during message generation:", err);
-      setGenerationError(`Error: ${err.message}`); // Keep error state for potential display
-      setGeneratedMessage(null); // Ensure no message is displayed on error
+      const message = err instanceof Error ? err.message : 'Failed to generate message.';
+      setGenerationError(`Error: ${message}`);
+      setGeneratedMessage(null);
     } finally {
-      setIsGenerating(false); // Renamed
+      setIsGenerating(false);
     }
   };
 
-  // --- Copy to Clipboard Function ---
   const handleCopyToClipboard = async () => {
     if (!generatedMessage) return;
     try {
       await Clipboard.setStringAsync(generatedMessage);
       setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000); // Hide message after 2s
+      setTimeout(() => setCopySuccess(false), 3000); // Reset after 3s
       console.log('Message copied to clipboard!');
-      // Optionally show a brief toast/message in the UI
-      // Alert.alert("Copied!", "Message copied to clipboard."); // Can be intrusive
     } catch (err) {
       console.error('Failed to copy text: ', err);
-      Alert.alert('Copy Error', 'Failed to copy message to clipboard.');
+      Alert.alert('Copy Error','Failed to copy message to clipboard.');
     }
   };
 
-  useEffect(() => {
-    let profileSubscription: any = null;
+  // --- Styles --- (Adapting Tailwind concepts)
+  const styles = getStyles(colorScheme);
 
-    // --- Auth Listener --- (Modified)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user?.id) {
-        fetchProfile(session.user.id); // Fetch profile on initial load if session exists
-      } else {
-        setLoadingProfile(false); // No user, stop loading profile
-      }
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session?.user?.id) {
-        fetchProfile(session.user.id); // Fetch profile when auth state changes
-
-        // --- Subscribe to Profile Changes (Realtime) --- (Added)
-        // Listen for changes specifically to the logged-in user's profile row
-        profileSubscription = supabase
-          .channel('public:profiles:id=eq.' + session.user.id)
-          .on(
-            'postgres_changes',
-            { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${session.user.id}` },
-            (payload) => {
-              console.log('Profile updated via webhook! Reloading profile:', payload.new);
-              setProfile(payload.new); // Update profile state directly from payload
-              // Alternatively, refetch: fetchProfile(session.user.id);
-            }
-          )
-          .subscribe((status, err) => {
-              if (status === 'SUBSCRIBED') {
-                  console.log('Subscribed to profile changes for user:', session.user.id);
-              } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                  console.error('Realtime subscription error:', status, err);
-                  // Optionally, try to resubscribe or notify user
-              }
-          });
-
-      } else {
-        setProfile(null); // Clear profile on logout
-        setLoadingProfile(false);
-        // Unsubscribe from profile changes if subscription exists
-        if (profileSubscription) {
-          supabase.removeChannel(profileSubscription);
-          profileSubscription = null;
-          console.log('Unsubscribed from profile changes.');
-        }
-      }
-      console.log('Auth state changed, session:', session ? 'Yes' : 'No');
-    });
-
-    // --- Cleanup Listeners --- (Modified)
-    return () => {
-      authListener?.subscription.unsubscribe();
-      if (profileSubscription) {
-        supabase.removeChannel(profileSubscription);
-      }
-    };
-  }, []);
-
-  // Helper to check subscription status
-  const isPremiumUser = profile?.subscription_status === 'active' || profile?.subscription_status === 'premium';
-
+  // --- Render --- //
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={{ alignItems: 'center' }}>
-        <Text style={styles.title}>ToneSmith Mobile</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>ToneSmith</Text>
+          <Text style={styles.tagline}>Polished Messages. Perfect Tone. Instantly.</Text>
+        </View>
 
-        {loadingProfile ? (
-          <ActivityIndicator style={{ marginTop: 50 }} size="large" />
-        ) : session ? (
-          <>
-            <Text style={styles.statusText}>
-              Status: {profile?.subscription_status || 'Loading...'} {isPremiumUser ? '👑' : ''}
-            </Text>
-            <View style={styles.editorContainer}>
-              <TextInput
-                style={styles.input}
-                multiline
-                placeholder="Enter text here..."
-                value={text}
-                onChangeText={setText}
-              />
-              <View style={styles.pickerContainer}>
-                <Text style={styles.label}>Tone:</Text>
-                <Picker
-                  selectedValue={tone}
-                  onValueChange={(itemValue) => setTone(itemValue)}
-                  style={styles.picker}
-                  enabled={!isGenerating}
-                >
-                  <Picker.Item label="Casual" value="casual" />
-                  <Picker.Item label="Concise" value="concise" />
-                  <Picker.Item label="Formal" value="formal" />
-                  <Picker.Item label="Friendly" value="friendly" />
-                  <Picker.Item label="Persuasive" value="persuasive" />
-                  <Picker.Item label="Professional" value="professional" />
-                </Picker>
-              </View>
-              <View style={styles.pickerContainer}>
-                <Text style={styles.label}>Context:</Text>
-                <Picker
-                  selectedValue={context}
-                  onValueChange={(itemValue) => setContext(itemValue)}
-                  style={styles.picker}
-                  enabled={!isGenerating}
-                >
-                  <Picker.Item label="Documentation" value="Documentation" />
-                  <Picker.Item label="Email" value="Email" />
-                  <Picker.Item label="General Text" value="General Text" />
-                  <Picker.Item label="GitHub Comment" value="GitHub Comment" />
-                  <Picker.Item label="LinkedIn Post" value="LinkedIn Post" />
-                  <Picker.Item label="Teams Chat" value="Teams Chat" />
-                  <Picker.Item label="Text Message" value="Text Message" />
-                </Picker>
-              </View>
-              <View style={styles.pickerContainer}>
-                <Text style={styles.label}>Output Format:</Text>
+        {/* Section 1: Input */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>1. Enter Your Message</Text>
+          <TextInput
+            style={styles.textArea}
+            placeholder="Write your unfiltered thoughts or rough draft here..."
+            placeholderTextColor={styles.placeholderText.color}
+            value={userInput}
+            onChangeText={setUserInput}
+            maxLength={MAX_INPUT_LENGTH}
+            multiline
+            textAlignVertical="top" // Good practice for multiline
+          />
+          <Text style={styles.charCount}>
+            Characters: {userInput.length} / {MAX_INPUT_LENGTH}
+          </Text>
+        </View>
+
+        {/* Section 2: Config */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>2. Choose Tone & Context</Text>
+          {/* Tone Picker */}
+          <View style={styles.pickerContainer}>
+             <Text style={styles.pickerLabel}>Tone</Text>
+             <View style={styles.pickerWrapper}> // Wrapper for border/styling
+              <Picker
+                selectedValue={selectedTone}
+                onValueChange={(itemValue) => setSelectedTone(itemValue)}
+                style={styles.picker}
+                itemStyle={styles.pickerItem} // For iOS font styling if needed
+                mode="dropdown" // Android style
+              >
+                {toneOptions.map((option) => (
+                  <Picker.Item key={option.id} label={option.label} value={option.id} />
+                ))}
+              </Picker>
+             </View>
+          </View>
+
+          {/* Context Picker */}
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerLabel}>Context</Text>
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={selectedContext}
+                onValueChange={(itemValue) => setSelectedContext(itemValue)}
+                style={styles.picker}
+                 itemStyle={styles.pickerItem}
+                 mode="dropdown"
+              >
+                {contextOptions.map((option) => (
+                  <Picker.Item key={option} label={option} value={option} />
+                ))}
+              </Picker>
+            </View>
+          </View>
+
+          {/* Output Format Picker */}
+          <View style={styles.pickerContainer}>
+            <Text style={styles.pickerLabel}>Output Format</Text>
+             <View style={styles.pickerWrapper}>
                 <Picker
                   selectedValue={outputFormat}
                   onValueChange={(itemValue) => setOutputFormat(itemValue)}
                   style={styles.picker}
-                  enabled={!isGenerating}
+                  itemStyle={styles.pickerItem}
+                  mode="dropdown"
                 >
-                  <Picker.Item label="Markdown" value="Markdown" />
                   <Picker.Item label="Raw Text" value="Raw Text" />
+                  <Picker.Item label="Markdown" value="Markdown" />
                 </Picker>
-              </View>
-              <Text>Selected Tone: {tone}</Text>
-              <Button
-                  title={isGenerating ? "Generating..." : "Generate Message"}
-                  onPress={handleGenerateMessage}
-                  disabled={isGenerating}
-              />
-              <Button title="Sign Out" onPress={() => supabase.auth.signOut()} />
-            </View>
+             </View>
+          </View>
+        </View>
 
-            {/* --- Conditional Rendering for Subscription --- */ 
-            {!isPremiumUser && (
-                <PremiumSubscription />
+        {/* Generate Button */}
+        <View style={styles.buttonContainer}>
+          <Pressable
+            style={({ pressed }) => [
+                styles.generateButton,
+                isGenerating && styles.buttonDisabled,
+                pressed && !isGenerating && styles.buttonPressed,
+            ]}
+            onPress={handleGenerateMessage}
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <>
+                <ActivityIndicator size="small" color="#ffffff" style={styles.spinner} />
+                <Text style={styles.buttonText}>Generating...</Text>
+              </>
+            ) : (
+              <Text style={styles.buttonText}>Generate Message</Text>
             )}
+          </Pressable>
+        </View>
 
-            {/* --- Preferences/Template Section --- */ 
-            <UserPreferences userId={session.user.id} />
-
-            {/* Only show suggestions if premium or if free tier allows (logic in handleGetSuggestions) */} 
-            <View style={styles.suggestionsContainer}>
-              <Text style={styles.suggestionsTitle}>Suggestions:</Text>
-              {isGenerating && <Text>Generating...</Text>}
-              {generationError && !isGenerating && <Text style={styles.errorText}>{generationError}</Text>}
-              {!isGenerating && !generationError && generatedMessage && (
-                <View style={styles.generatedContent}>
-                  {/* Basic Text rendering for now. Markdown requires a library like react-native-markdown-display */}
-                   <Text selectable={true}>{generatedMessage}</Text>
-                   <Pressable onPress={handleCopyToClipboard} style={styles.copyButton}>
-                     <Text style={styles.copyButtonText}>Copy</Text>
-                   </Pressable>
-                   {copySuccess && <Text style={styles.copyFeedback}>Copied!</Text>}
+        {/* Section 3: Output (Conditional) */}
+        {(generatedMessage || generationError) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>3. Generated Message</Text>
+            <View style={styles.outputContainer}>
+              {generationError && (
+                <View style={styles.errorBox}>
+                  <Text style={styles.errorText}>{generationError}</Text>
                 </View>
               )}
-              {!isGenerating && !generationError && !generatedMessage && (
-                <Text>No suggestions yet. Type text and click generate.</Text>
+
+              {generatedMessage && (
+                <View style={styles.messageArea}> // Added for potential scroll/copy button positioning
+                   {/* Copy Button - Positioned within messageArea */} 
+                   <Pressable
+                    style={({ pressed }) => [
+                        styles.copyButton,
+                        copySuccess && styles.copyButtonSuccess,
+                        pressed && styles.buttonPressed // Reuse pressed style
+                    ]}
+                    onPress={handleCopyToClipboard}
+                  >
+                    <Text style={[styles.copyButtonText, copySuccess && styles.copyButtonTextSuccess]}>
+                        {copySuccess ? 'Copied!' : 'Copy'}
+                    </Text>
+                  </Pressable>
+
+                  {/* Message Display */} 
+                  {outputFormat === 'Markdown' ? (
+                    <Markdown style={markdownStyles(colorScheme)}>{generatedMessage}</Markdown>
+                  ) : (
+                    <Text style={styles.rawTextOutput} selectable={true}>{generatedMessage}</Text> // selectable is useful
+                  )}
+                </View>
               )}
             </View>
-          </>
-        ) : (
-          <Auth /> // Show Auth component if not logged in
+          </View>
         )}
 
-        <StatusBar style="auto" />
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-    paddingTop: 50, // Adjust as needed for status bar etc.
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  editorContainer: {
-    width: '90%',
-    marginBottom: 20,
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  input: {
-    height: 150,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 4,
-    padding: 10,
-    marginBottom: 10,
-    textAlignVertical: 'top', // For Android multiline
-  },
-  suggestionsContainer: {
-    width: '90%',
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  suggestionsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  suggestionItem: {
-    fontSize: 14,
-    marginBottom: 5,
-  },
-  errorText: {
-      color: 'red',
-      marginTop: 5,
-      marginBottom: 10,
-      textAlign: 'center',
-  },
-  // Styles for Auth Component
-  authContainer: {
-    width: '90%',
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  authTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  authInput: {
-    width: '100%',
-    height: 40,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 10,
-    marginBottom: 10,
-  },
-  authButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginTop: 10,
-  },
-  statusText: {
+// --- Dynamic Styling Function ---
+const getStyles = (colorScheme) => {
+  const isDark = colorScheme === 'dark';
+  const colors = {
+    background: isDark ? '#111827' : '#f9fafb', // gray-900 : gray-50
+    text: isDark ? '#e5e7eb' : '#1f2937', // gray-200 : gray-800
+    placeholder: isDark ? '#6b7280' : '#9ca3af', // gray-500 : gray-400
+    sectionTitle: isDark ? '#d1d5db' : '#374151', // gray-300 : gray-700
+    tagline: isDark ? '#9ca3af' : '#4b5563', // gray-400 : gray-600
+    title: isDark ? '#5eead4' : '#1e3a8a', // teal-aqua : deep-blue
+    inputBackground: isDark ? '#1f2937' : '#ffffff', // gray-800 : white
+    inputBorder: isDark ? '#4b5563' : '#d1d5db', // gray-600 : gray-300
+    outputBackground: isDark ? '#374151' : '#f3f4f6', // gray-700 : gray-100
+    outputBorder: isDark ? '#4b5563' : '#e5e7eb', // gray-600 : gray-200
+    buttonBackground: '#14b8a6', // teal-aqua
+    buttonText: '#ffffff',
+    buttonDisabledBackground: '#99f6e4', // Lighter teal
+    errorBackground: isDark ? '#7f1d1d' : '#fee2e2', // red-900 : red-100
+    errorBorder: isDark ? '#b91c1c' : '#fca5a5', // red-700 : red-300
+    errorText: isDark ? '#fecaca' : '#991b1b', // red-200 : red-800
+    copyButtonBg: isDark ? '#4b5563' : '#e5e7eb', // gray-600 : gray-200
+    copyButtonText: isDark ? '#e5e7eb' : '#374151', // gray-200 : gray-700
+    copySuccessBg: isDark ? '#047857' : '#d1fae5', // green-700 : green-100
+    copySuccessText: isDark ? '#ffffff' : '#065f46', // white : green-800
+    pickerWrapperBg: isDark ? '#1f2937' : '#ffffff', // gray-800 : white
+    pickerItemColor: isDark ? '#e5e7eb' : '#1f2937', // For iOS picker item text
+  };
+
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    container: {
+      flex: 1,
+    },
+    contentContainer: {
+        padding: 20,
+        paddingBottom: 60, // Extra space at bottom
+    },
+    header: {
+      alignItems: 'center',
+      marginBottom: 30,
+    },
+    title: {
+      fontSize: 32,
+      fontWeight: 'bold',
+      color: colors.title,
+    },
+    tagline: {
       fontSize: 16,
-      fontWeight: 'bold',
-      marginBottom: 10,
-      color: '#333',
-  },
-  // --- Styles for Preferences --- 
-  prefsContainer: {
-    width: '90%',
-    marginTop: 20,
-    marginBottom: 20,
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  prefsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  prefsInput: {
-    height: 40,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 10,
-    marginBottom: 10,
-  },
-  prefsTextarea: {
-      height: 100,
-      textAlignVertical: 'top',
-  },
-   prefsButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
-  },
-  generatedContent: {
-     marginTop: 10,
-     backgroundColor: '#e9ecef', // Light background for the message
-     padding: 10,
-     borderRadius: 5,
-  },
-  copyButton: {
-      marginTop: 10,
-      backgroundColor: '#007bff',
-      paddingVertical: 8,
-      paddingHorizontal: 15,
-      borderRadius: 5,
-      alignSelf: 'flex-start', // Position button
-  },
-  copyButtonText: {
-      color: '#fff',
-      fontWeight: 'bold',
-  },
-  copyFeedback: {
-      marginTop: 5,
-      marginLeft: 5,
-      color: 'green',
+      color: colors.tagline,
+      marginTop: 4,
+    },
+    section: {
+      marginBottom: 30,
+    },
+    sectionTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: colors.sectionTitle,
+      marginBottom: 15,
+    },
+    textArea: {
+      height: 160, // Fixed height for consistency
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 8,
+      padding: 12,
+      backgroundColor: colors.inputBackground,
+      color: colors.text,
+      fontSize: 15,
+      marginBottom: 5,
+    },
+    placeholderText: {
+        color: colors.placeholder,
+    },
+    charCount: {
+      textAlign: 'right',
       fontSize: 12,
-      fontStyle: 'italic',
-  },
-  pickerContainer: {
-    width: '90%',
-    marginBottom: 20,
-    backgroundColor: '#fff',
-    padding: 10,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  picker: {
-    width: '100%',
-    height: 50,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 4,
-  },
-}); 
-        .from('profiles')
-        .select(`subscription_status, name`) // Select needed fields
-        .eq('id', userId)
-        .single();
-
-      if (error && status !== 406) {
-        throw error; // Throw error if it's not a "No rows found" error
-      }
-
-      if (data) {
-        setProfile(data);
-        console.log('User profile loaded:', data);
-      } else {
-         console.log('No profile found for user, might be newly created.');
-         setProfile({ subscription_status: 'free' }); // Assume free if no profile yet
-      }
-    } catch (error) {
-      Alert.alert('Error loading profile', error.message);
-      setProfile(null);
-    } finally {
-      setLoadingProfile(false);
-    }
-  };
-
-  // --- Renamed and Updated API Call Handler ---
-  const handleGenerateMessage = async () => {
-    // Allow generation even if not logged in, function handles limits/errors
-    if (!text.trim()) {
-      Alert.alert("Input Required", "Please enter some text to generate a message.");
-      return;
-    }
-
-    console.log(`Invoking tone-suggest function for: Tone=${tone}, Context=${context}, Format=${outputFormat}`);
-    setIsGenerating(true); // Renamed
-    setGenerationError(null); // Renamed
-    setGeneratedMessage(null); // Clear previous message
-    setCopySuccess(false); // Reset copy feedback
-
-    try {
-      // Call the Supabase Edge Function with updated parameters
-      const { data, error: invokeError } = await supabase.functions.invoke('tone-suggest', {
-        // Body now contains text, tone, context, and outputFormat
-        body: { text, tone, context, outputFormat },
-      });
-
-      if (invokeError) {
-         // Handle Supabase function invocation errors (network, permissions etc.)
-         console.error("Supabase function invocation error:", invokeError);
-         throw new Error(invokeError.message || 'Failed to connect to the generation service.');
-      }
-
-      // Check if the function returned a specific error payload (e.g., rate limit)
-      if (data && data.error) {
-        console.error("Function returned error:", data.error);
-        // Check for specific rate limit error message from backend
-        if (data.error.includes("Daily generation limit")) {
-            Alert.alert("Limit Reached", data.error);
-        } else {
-            Alert.alert("Generation Error", data.error);
-        }
-        throw new Error(data.error); // Still throw to stop execution
-      }
-
-      // Expecting { generatedMessage: "..." } on success
-      if (data && typeof data.generatedMessage === 'string') {
-        setGeneratedMessage(data.generatedMessage);
-        console.log('Message generated successfully.');
-      } else {
-        console.error('Unexpected data format from function:', data);
-        throw new Error('Received an unexpected response from the server.');
-      }
-    } catch (err) {
-      // Avoid showing alert again if it was already shown for a function error
-      if (!err.message.includes("Daily generation limit") && !(data && data.error)) {
-          Alert.alert("Error", `Failed to generate message: ${err.message}`);
-      }
-      console.error("Error during message generation:", err);
-      setGenerationError(`Error: ${err.message}`); // Keep error state for potential display
-      setGeneratedMessage(null); // Ensure no message is displayed on error
-    } finally {
-      setIsGenerating(false); // Renamed
-    }
-  };
-
-  // --- Copy to Clipboard Function ---
-  const handleCopyToClipboard = async () => {
-    if (!generatedMessage) return;
-    try {
-      await Clipboard.setStringAsync(generatedMessage);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000); // Hide message after 2s
-      console.log('Message copied to clipboard!');
-      // Optionally show a brief toast/message in the UI
-      // Alert.alert("Copied!", "Message copied to clipboard."); // Can be intrusive
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
-      Alert.alert('Copy Error', 'Failed to copy message to clipboard.');
-    }
-  };
-
-  useEffect(() => {
-    let profileSubscription: any = null;
-
-    // --- Auth Listener --- (Modified)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user?.id) {
-        fetchProfile(session.user.id); // Fetch profile on initial load if session exists
-      } else {
-        setLoadingProfile(false); // No user, stop loading profile
-      }
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session?.user?.id) {
-        fetchProfile(session.user.id); // Fetch profile when auth state changes
-
-        // --- Subscribe to Profile Changes (Realtime) --- (Added)
-        // Listen for changes specifically to the logged-in user's profile row
-        profileSubscription = supabase
-          .channel('public:profiles:id=eq.' + session.user.id)
-          .on(
-            'postgres_changes',
-            { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${session.user.id}` },
-            (payload) => {
-              console.log('Profile updated via webhook! Reloading profile:', payload.new);
-              setProfile(payload.new); // Update profile state directly from payload
-              // Alternatively, refetch: fetchProfile(session.user.id);
-            }
-          )
-          .subscribe((status, err) => {
-              if (status === 'SUBSCRIBED') {
-                  console.log('Subscribed to profile changes for user:', session.user.id);
-              } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                  console.error('Realtime subscription error:', status, err);
-                  // Optionally, try to resubscribe or notify user
-              }
-          });
-
-      } else {
-        setProfile(null); // Clear profile on logout
-        setLoadingProfile(false);
-        // Unsubscribe from profile changes if subscription exists
-        if (profileSubscription) {
-          supabase.removeChannel(profileSubscription);
-          profileSubscription = null;
-          console.log('Unsubscribed from profile changes.');
-        }
-      }
-      console.log('Auth state changed, session:', session ? 'Yes' : 'No');
-    });
-
-    // --- Cleanup Listeners --- (Modified)
-    return () => {
-      authListener?.subscription.unsubscribe();
-      if (profileSubscription) {
-        supabase.removeChannel(profileSubscription);
-      }
-    };
-  }, []);
-
-  // Helper to check subscription status
-  const isPremiumUser = profile?.subscription_status === 'active' || profile?.subscription_status === 'premium';
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={{ alignItems: 'center' }}>
-        <Text style={styles.title}>ToneSmith Mobile</Text>
-
-        {loadingProfile ? (
-          <ActivityIndicator style={{ marginTop: 50 }} size="large" />
-        ) : session ? (
-          <>
-            <Text style={styles.statusText}>
-              Status: {profile?.subscription_status || 'Loading...'} {isPremiumUser ? '👑' : ''}
-            </Text>
-            <View style={styles.editorContainer}>
-              <TextInput
-                style={styles.input}
-                multiline
-                placeholder="Enter text here..."
-                value={text}
-                onChangeText={setText}
-              />
-              <View style={styles.pickerContainer}>
-                <Text style={styles.label}>Tone:</Text>
-                <Picker
-                  selectedValue={tone}
-                  onValueChange={(itemValue) => setTone(itemValue)}
-                  style={styles.picker}
-                  enabled={!isGenerating}
-                >
-                  <Picker.Item label="Casual" value="casual" />
-                  <Picker.Item label="Concise" value="concise" />
-                  <Picker.Item label="Formal" value="formal" />
-                  <Picker.Item label="Friendly" value="friendly" />
-                  <Picker.Item label="Persuasive" value="persuasive" />
-                  <Picker.Item label="Professional" value="professional" />
-                </Picker>
-              </View>
-              <View style={styles.pickerContainer}>
-                <Text style={styles.label}>Context:</Text>
-                <Picker
-                  selectedValue={context}
-                  onValueChange={(itemValue) => setContext(itemValue)}
-                  style={styles.picker}
-                  enabled={!isGenerating}
-                >
-                  <Picker.Item label="Documentation" value="Documentation" />
-                  <Picker.Item label="Email" value="Email" />
-                  <Picker.Item label="General Text" value="General Text" />
-                  <Picker.Item label="GitHub Comment" value="GitHub Comment" />
-                  <Picker.Item label="LinkedIn Post" value="LinkedIn Post" />
-                  <Picker.Item label="Teams Chat" value="Teams Chat" />
-                  <Picker.Item label="Text Message" value="Text Message" />
-                </Picker>
-              </View>
-              <View style={styles.pickerContainer}>
-                <Text style={styles.label}>Output Format:</Text>
-                <Picker
-                  selectedValue={outputFormat}
-                  onValueChange={(itemValue) => setOutputFormat(itemValue)}
-                  style={styles.picker}
-                  enabled={!isGenerating}
-                >
-                  <Picker.Item label="Markdown" value="Markdown" />
-                  <Picker.Item label="Raw Text" value="Raw Text" />
-                </Picker>
-              </View>
-              <Text>Selected Tone: {tone}</Text>
-              <Button
-                  title={isGenerating ? "Generating..." : "Generate Message"}
-                  onPress={handleGenerateMessage}
-                  disabled={isGenerating}
-              />
-              <Button title="Sign Out" onPress={() => supabase.auth.signOut()} />
-            </View>
-
-            {/* --- Conditional Rendering for Subscription --- */ 
-            {!isPremiumUser && (
-                <PremiumSubscription />
-            )}
-
-            {/* --- Preferences/Template Section --- */ 
-            <UserPreferences userId={session.user.id} />
-
-            {/* Only show suggestions if premium or if free tier allows (logic in handleGetSuggestions) */} 
-            <View style={styles.suggestionsContainer}>
-              <Text style={styles.suggestionsTitle}>Suggestions:</Text>
-              {isGenerating && <Text>Generating...</Text>}
-              {generationError && !isGenerating && <Text style={styles.errorText}>{generationError}</Text>}
-              {!isGenerating && !generationError && generatedMessage && (
-                <View style={styles.generatedContent}>
-                  {/* Basic Text rendering for now. Markdown requires a library like react-native-markdown-display */}
-                   <Text selectable={true}>{generatedMessage}</Text>
-                   <Pressable onPress={handleCopyToClipboard} style={styles.copyButton}>
-                     <Text style={styles.copyButtonText}>Copy</Text>
-                   </Pressable>
-                   {copySuccess && <Text style={styles.copyFeedback}>Copied!</Text>}
-                </View>
-              )}
-              {!isGenerating && !generationError && !generatedMessage && (
-                <Text>No suggestions yet. Type text and click generate.</Text>
-              )}
-            </View>
-          </>
-        ) : (
-          <Auth /> // Show Auth component if not logged in
-        )}
-
-        <StatusBar style="auto" />
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-    paddingTop: 50, // Adjust as needed for status bar etc.
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  editorContainer: {
-    width: '90%',
-    marginBottom: 20,
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  input: {
-    height: 150,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 4,
-    padding: 10,
-    marginBottom: 10,
-    textAlignVertical: 'top', // For Android multiline
-  },
-  suggestionsContainer: {
-    width: '90%',
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  suggestionsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  suggestionItem: {
-    fontSize: 14,
-    marginBottom: 5,
-  },
-  errorText: {
-      color: 'red',
-      marginTop: 5,
-      marginBottom: 10,
-      textAlign: 'center',
-  },
-  // Styles for Auth Component
-  authContainer: {
-    width: '90%',
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 8,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  authTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-  },
-  authInput: {
-    width: '100%',
-    height: 40,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 10,
-    marginBottom: 10,
-  },
-  authButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    marginTop: 10,
-  },
-  statusText: {
+      color: colors.placeholder,
+    },
+    pickerContainer: {
+      marginBottom: 15,
+    },
+    pickerLabel: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: colors.text,
+        marginBottom: 8,
+    },
+    pickerWrapper: {
+      borderWidth: 1,
+      borderColor: colors.inputBorder,
+      borderRadius: 8,
+      backgroundColor: colors.pickerWrapperBg,
+      // Necessary for Picker background/border on iOS
+      overflow: 'hidden',
+    },
+    picker: {
+      width: '100%',
+      height: Platform.OS === 'ios' ? undefined : 50, // Explicit height for Android
+      color: colors.text,
+      // Note: Background color on Picker itself might conflict with wrapper
+    },
+     pickerItem: {
+        // Style props for Picker.Item (mainly iOS)
+        color: colors.pickerItemColor,
+        // height: 120, // Can adjust dropdown height on iOS if needed
+     },
+    buttonContainer: {
+      alignItems: 'center',
+      marginTop: 10, // Space above button
+      marginBottom: 30, // Space below button
+    },
+    generateButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.buttonBackground,
+      paddingVertical: 12,
+      paddingHorizontal: 30,
+      borderRadius: 8,
+      minWidth: 180,
+      // Add shadow for elevation
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 4,
+    },
+    buttonPressed: {
+      opacity: 0.8, // Dim button slightly when pressed
+    },
+    buttonDisabled: {
+      backgroundColor: colors.buttonDisabledBackground,
+      opacity: 0.7,
+      shadowOpacity: 0.1, // Less shadow when disabled
+      elevation: 1,
+    },
+    buttonText: {
+      color: colors.buttonText,
       fontSize: 16,
-      fontWeight: 'bold',
+      fontWeight: '600',
+      textAlign: 'center',
+    },
+    spinner: {
+        marginRight: 10,
+    },
+    outputContainer: {
+      borderWidth: 1,
+      borderColor: colors.outputBorder,
+      borderRadius: 8,
+      backgroundColor: colors.outputBackground,
+      padding: 15,
+      minHeight: 100,
+      position: 'relative', // Needed for absolute positioning of copy button
+    },
+     messageArea: {
+        // Container for the message itself, allows button overlay
+     },
+     copyButton: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        zIndex: 1, // Ensure button is above text
+        backgroundColor: colors.copyButtonBg,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: colors.inputBorder, // Use input border for consistency
+     },
+     copyButtonSuccess: {
+        backgroundColor: colors.copySuccessBg,
+        borderColor: 'transparent',
+     },
+     copyButtonText: {
+        fontSize: 12,
+        fontWeight: '500',
+        color: colors.copyButtonText,
+     },
+     copyButtonTextSuccess: {
+        color: colors.copySuccessText,
+     },
+    errorBox: {
+      borderWidth: 1,
+      borderColor: colors.errorBorder,
+      backgroundColor: colors.errorBackground,
+      borderRadius: 6,
+      padding: 10,
+      marginBottom: 15,
+    },
+    errorText: {
+      color: colors.errorText,
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    rawTextOutput: {
+      fontSize: 15,
+      color: colors.text,
+      lineHeight: 22,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', // Monospace looks better for raw
+      marginTop: 5, // Add space below copy button
+      paddingTop: 30, // Extra padding to ensure button doesn't overlap initially
+    },
+  });
+};
+
+// --- Markdown Styles --- (Separate for clarity)
+const markdownStyles = (colorScheme) => {
+  const isDark = colorScheme === 'dark';
+  const colors = {
+      text: isDark ? '#e5e7eb' : '#1f2937',
+      heading: isDark ? '#f3f4f6' : '#111827',
+      link: isDark ? '#5eead4' : '#1e3a8a',
+      codeBg: isDark ? '#374151' : '#e5e7eb',
+      codeText: isDark ? '#e5e7eb' : '#1f2937',
+      blockquoteBorder: isDark ? '#4b5563' : '#d1d5db',
+      blockquoteText: isDark ? '#9ca3af' : '#6b7280',
+  };
+  return {
+    // General text
+    body: { fontSize: 15, color: colors.text, lineHeight: 22, marginTop: 5, paddingTop: 30 }, // Match raw text + space for button
+    // Headings
+    heading1: { fontSize: 24, fontWeight: 'bold', color: colors.heading, marginBottom: 10, marginTop: 15 },
+    heading2: { fontSize: 20, fontWeight: 'bold', color: colors.heading, marginBottom: 8, marginTop: 12 },
+    heading3: { fontSize: 18, fontWeight: 'bold', color: colors.heading, marginBottom: 6, marginTop: 10 },
+    // Links
+    link: { color: colors.link, textDecorationLine: 'underline' },
+    // Code blocks
+    code_block: {
+      backgroundColor: colors.codeBg,
+      color: colors.codeText,
+      padding: 10,
+      borderRadius: 4,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
       marginBottom: 10,
-      color: '#333',
-  },
-  // --- Styles for Preferences --- 
-  prefsContainer: {
-    width: '90%',
-    marginTop: 20,
-    marginBottom: 20,
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  prefsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  prefsInput: {
-    height: 40,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 4,
-    paddingHorizontal: 10,
-    marginBottom: 10,
-  },
-  prefsTextarea: {
-      height: 100,
-      textAlignVertical: 'top',
-  },
-   prefsButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
-  },
-  generatedContent: {
-     marginTop: 10,
-     backgroundColor: '#e9ecef', // Light background for the message
-     padding: 10,
-     borderRadius: 5,
-  },
-  copyButton: {
-      marginTop: 10,
-      backgroundColor: '#007bff',
-      paddingVertical: 8,
-      paddingHorizontal: 15,
-      borderRadius: 5,
-      alignSelf: 'flex-start', // Position button
-  },
-  copyButtonText: {
-      color: '#fff',
-      fontWeight: 'bold',
-  },
-  copyFeedback: {
-      marginTop: 5,
+    },
+    // Inline code
+    code_inline: {
+      backgroundColor: colors.codeBg,
+      color: colors.codeText,
+      paddingHorizontal: 4, // Minimal padding
+      paddingVertical: 1,
+      borderRadius: 3,
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    // Lists
+    bullet_list: { marginBottom: 10 },
+    ordered_list: { marginBottom: 10 },
+    list_item: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      marginBottom: 5,
+    },
+     bullet_list_icon: {
+       marginRight: 8,
+       color: colors.text,
+       // You might need to adjust size/position based on font
+     },
+     ordered_list_icon: {
+       marginRight: 8,
+       color: colors.text,
+       // You might need to adjust size/position based on font
+     },
+    // Blockquotes
+    blockquote: {
+      borderLeftWidth: 4,
+      borderLeftColor: colors.blockquoteBorder,
+      paddingLeft: 10,
       marginLeft: 5,
-      color: 'green',
-      fontSize: 12,
-      fontStyle: 'italic',
-  },
-  pickerContainer: {
-    width: '90%',
-    marginBottom: 20,
-    backgroundColor: '#fff',
-    padding: 10,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  picker: {
-    width: '100%',
-    height: 50,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 4,
-  },
-}); 
+      marginBottom: 10,
+      backgroundColor: 'transparent', // Usually no background
+    },
+    // Paragraphs
+    paragraph: { marginBottom: 10 },
+     // Horizontal Rule
+     hr: {
+      backgroundColor: colors.blockquoteBorder, // Use a subtle color
+      height: 1,
+      marginVertical: 15,
+    },
+  };
+}; 
