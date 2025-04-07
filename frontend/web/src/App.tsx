@@ -21,9 +21,9 @@ import './App.css';
 // Main App Component
 function App() {
   // --- State Variables ---
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<any | null>(null); // State for user profile
-  const [loadingProfile, setLoadingProfile] = useState(true); // Loading state for profile
+  // const [session, setSession] = useState<Session | null>(null); // Commented out - Not used yet
+  // const [profile, setProfile] = useState<any | null>(null); // Commented out - Not used yet
+  // const [loadingProfile, setLoadingProfile] = useState(true); // Commented out - Not used yet
   // const [text] = useState<string>(''); // Old - REMOVED setText
   // const [tone] = useState<string>('professional'); // Old - REMOVED setTone
   // const [context] = useState<string>('Email'); // Old - REMOVED setContext
@@ -79,7 +79,7 @@ function App() {
   const [selectedTone, setSelectedTone] = useState<string>(toneOptions[2].id); // Default to 'Professional - Boss'
   const [selectedContext, setSelectedContext] = useState<string>(contextOptions[1]); // Default to Email
 
-  // --- Renamed and Updated API Call Handler ---
+  // --- API Call Handler ---
   const handleGenerateMessage = async () => {
     // Allow generation even if not logged in, function handles limits/errors
     if (!userInput.trim()) {
@@ -147,6 +147,8 @@ function App() {
     }
   };
 
+  // --- Commented out Profile Fetching and Auth Logic ---
+  /*
   // Function to fetch user profile
   const fetchProfile = async (userId: string) => {
     // setLoadingProfile(true);
@@ -162,15 +164,15 @@ function App() {
       }
 
       if (data) {
-        setProfile(data);
+        // setProfile(data);
         console.log('User profile loaded:', data);
       } else {
          console.log('No profile found for user.');
-         setProfile({ subscription_status: 'free' }); // Assume free
+         // setProfile({ subscription_status: 'free' }); // Assume free
       }
     } catch (error) {
       alert(`Error loading profile: ${(error as Error).message}`);
-      setProfile(null);
+      // setProfile(null);
     } finally {
       // setLoadingProfile(false);
     }
@@ -181,18 +183,18 @@ function App() {
 
     // Auth Listener
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+      // setSession(session);
       if (session?.user?.id) {
-        fetchProfile(session.user.id);
+        // fetchProfile(session.user.id);
       } else {
         // setLoadingProfile(false);
       }
     });
 
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+      // setSession(session);
       if (session?.user?.id) {
-        fetchProfile(session.user.id);
+        // fetchProfile(session.user.id);
 
         // Subscribe to Profile Changes (Realtime)
         if (!profileSubscription) { // Avoid duplicate subscriptions
@@ -203,7 +205,7 @@ function App() {
                 { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${session.user.id}` },
                 (payload) => {
                   console.log('Profile updated via webhook! Reloading profile:', payload.new);
-                  setProfile(payload.new);
+                  // setProfile(payload.new);
                 }
               )
               .subscribe((status, err) => {
@@ -216,7 +218,7 @@ function App() {
              console.log('Attempted profile subscription setup.');
         }
       } else {
-        setProfile(null);
+        // setProfile(null);
         // setLoadingProfile(false);
         // Unsubscribe if channel exists
         if (profileSubscription) {
@@ -242,12 +244,9 @@ function App() {
   }, []);
 
   // Determine if the user is premium based on profile status
-  const isPremium = profile?.subscription_status === 'premium' || profile?.subscription_status === 'active';
-
-  // --- Dynamic Header Content ---
-  // const renderHeaderContent = () => { // TS6133 unused function
-    // ... existing code ...
-  // };
+  // const isPremium = profile?.subscription_status === 'premium' || profile?.subscription_status === 'active';
+  */
+  // --- End Commented out Section ---
 
   // --- Refined Tailwind JSX --- //
   return (
