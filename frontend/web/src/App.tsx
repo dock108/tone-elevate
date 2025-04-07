@@ -20,16 +20,15 @@ import './App.css';
 
 // Main App Component
 function App() {
+  // --- State Variables ---
   const [session, setSession] = useState<Session | null>(null);
-  // const [profile, setProfile] = useState<any | null>(null); // State for user profile - TS6133 unused
-  // const [loadingProfile, setLoadingProfile] = useState(true); // Loading state for profile - TS6133 unused
-  // const [showAuth, setShowAuth] = useState(false); // State to toggle Auth modal - TS6133 unused
-  const [text, setText] = useState<string>('');
-  const [tone, setTone] = useState<string>('professional'); // Example tone
-  // --- New State Variables ---
-  const [context, setContext] = useState<string>('Email'); // Default context
+  const [profile, setProfile] = useState<any | null>(null); // State for user profile
+  const [loadingProfile, setLoadingProfile] = useState(true); // Loading state for profile
+  // const [text] = useState<string>(''); // Old - REMOVED setText
+  // const [tone] = useState<string>('professional'); // Old - REMOVED setTone
+  // const [context] = useState<string>('Email'); // Old - REMOVED setContext
+
   const [outputFormat, setOutputFormat] = useState<string>('Raw Text'); // Default output format
-  // --- Renamed State Variables ---
   const [generatedMessage, setGeneratedMessage] = useState<string | null>(null); // Stores the single generated message
   const [isGenerating, setIsGenerating] = useState<boolean>(false); // Renamed from isSuggesting
   const [generationError, setGenerationError] = useState<string | null>(null); // Renamed from suggestionError
@@ -83,12 +82,12 @@ function App() {
   // --- Renamed and Updated API Call Handler ---
   const handleGenerateMessage = async () => {
     // Allow generation even if not logged in, function handles limits/errors
-    if (!text.trim()) {
+    if (!userInput.trim()) {
       alert("Please enter some text to generate a message.");
       return;
     }
 
-    console.log(`Invoking tone-suggest function for: Tone=${tone}, Context=${context}, Format=${outputFormat}`);
+    console.log(`Invoking tone-suggest function for: Tone=${selectedTone}, Context=${selectedContext}, Format=${outputFormat}`);
     setIsGenerating(true); // Renamed
     setGenerationError(null); // Renamed
     setGeneratedMessage(null); // Clear previous message
@@ -100,7 +99,7 @@ function App() {
         // Body now contains userInput, context, and outputFormat
         // The function will parse intent/tone from userInput internally.
         // No need to JSON.stringify() the body for invoke v2+
-        body: { userInput: text, context, outputFormat }, // Map `text` state to `userInput`, remove `tone`
+        body: { userInput, selectedContext, outputFormat }, // Map `userInput` state to `userInput`, remove `selectedTone`
       });
 
       if (invokeError) {
@@ -163,15 +162,15 @@ function App() {
       }
 
       if (data) {
-        // setProfile(data); // TS6133 profile is unused
+        setProfile(data);
         console.log('User profile loaded:', data);
       } else {
          console.log('No profile found for user.');
-         // setProfile({ subscription_status: 'free' }); // Assume free - TS6133 profile is unused
+         setProfile({ subscription_status: 'free' }); // Assume free
       }
     } catch (error) {
       alert(`Error loading profile: ${(error as Error).message}`);
-      // setProfile(null); // TS6133 profile is unused
+      setProfile(null);
     } finally {
       // setLoadingProfile(false);
     }
@@ -204,7 +203,7 @@ function App() {
                 { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${session.user.id}` },
                 (payload) => {
                   console.log('Profile updated via webhook! Reloading profile:', payload.new);
-                  // setProfile(payload.new); // TS6133 profile is unused
+                  setProfile(payload.new);
                 }
               )
               .subscribe((status, err) => {
@@ -217,7 +216,7 @@ function App() {
              console.log('Attempted profile subscription setup.');
         }
       } else {
-        // setProfile(null); // TS6133 profile is unused
+        setProfile(null);
         // setLoadingProfile(false);
         // Unsubscribe if channel exists
         if (profileSubscription) {
@@ -231,7 +230,7 @@ function App() {
     });
 
     // Close auth modal if user logs in/out
-    if (session) // setShowAuth(false);
+    // if (session) // setShowAuth(false);
 
     // Cleanup Listeners
     return () => {
@@ -243,7 +242,7 @@ function App() {
   }, []);
 
   // Determine if the user is premium based on profile status
-  // const isPremium = profile?.subscription_status === 'premium' || profile?.subscription_status === 'active'; // TS6133 unused
+  const isPremium = profile?.subscription_status === 'premium' || profile?.subscription_status === 'active';
 
   // --- Dynamic Header Content ---
   // const renderHeaderContent = () => { // TS6133 unused function
