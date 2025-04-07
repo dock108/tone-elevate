@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from './lib/supabaseClient'; // Import supabase client
-import { Session, RealtimeChannel } from '@supabase/supabase-js';
+// import { Session, RealtimeChannel } from '@supabase/supabase-js'; // Removed unused type imports
 // import PremiumSubscription from './components/PremiumSubscription'; // Import the component - TS6133 unused
 // import UserPreferences from './components/UserPreferences'; // Import preferences component - TS6133 unused
 import ReactMarkdown from 'react-markdown'; // Import react-markdown
