@@ -465,13 +465,20 @@ function App() {
           {/* Right Sidebar Ad Column - Takes up 1/4 width on medium+ screens */}
           <aside className="mt-10 w-full md:mt-0 md:w-1/4">
             <div className="sticky top-8 space-y-6"> {/* Makes the ad stick on scroll within its column */} 
-              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-200 p-6 text-center text-sm text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                Ad Placeholder
-                <br />
-                (Right Column)
-                <br />
-                (approx 25% width)
-              </div>
+              {/* START Replace placeholder with Adsense code */}
+              <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4047556293825006"
+                   crossOrigin="anonymous"></script>
+              {/* tone-smith-side */}
+              <ins className="adsbygoogle"
+                   style={{display:'block'}} // Use React style object
+                   data-ad-client="ca-pub-4047556293825006"
+                   data-ad-slot="4351641103"
+                   data-ad-format="auto"
+                   data-full-width-responsive="true"></ins>
+              <script>
+                   (adsbygoogle = window.adsbygoogle || []).push({});
+              </script>
+              {/* END Replace placeholder with Adsense code */}
               {/* Can add more sticky elements here if needed */}
             </div>
           </aside>
@@ -482,7 +489,18 @@ function App() {
 
       {/* Bottom Fixed Ad Bar */}
       <div className="fixed bottom-0 left-0 z-40 w-full border-t border-gray-300 bg-gray-200 p-3 text-center text-sm text-gray-600 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-        Persistent Ad Banner Placeholder
+          <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4047556293825006"
+               crossOrigin="anonymous"></script>
+          {/* ToneSmith Bottom Banner */}
+          <ins className="adsbygoogle"
+               style={{display:'block'}} // Use React style object
+               data-ad-client="ca-pub-4047556293825006"
+               data-ad-slot="7993973845"
+               data-ad-format="auto"
+               data-full-width-responsive="true"></ins>
+          <script>
+               (adsbygoogle = window.adsbygoogle || []).push({});
+          </script>
       </div>
 
     </div>
