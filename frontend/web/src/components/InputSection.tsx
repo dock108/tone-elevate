@@ -41,17 +41,22 @@ const InputSection: React.FC<InputSectionProps> = ({
 
   return (
     <div className="relative">
-      <div className="flex justify-between items-center mb-1">
-        <label htmlFor="userInput" className="block text-sm font-medium text-gray-700">
-          Your Message / Prompt
-        </label>
+      <div className="flex justify-between items-center mb-2">
+        <div>
+          <label htmlFor="userInput" className="block text-base font-medium text-gray-700">
+            Write Naturally
+          </label>
+          <p className="text-sm text-gray-500 mt-1">
+            Just write your thoughts - we'll help polish them for your selected tone and context.
+          </p>
+        </div>
         {/* Container for Save/Load buttons, shown only if logged in */} 
         {isLoggedIn && (
           <div className="flex items-center space-x-2">
              <button 
-               onClick={handleSaveClick} // Use the simple trigger
+               onClick={handleSaveClick}
                className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition duration-150 ease-in-out"
-               disabled={!userInput.trim()} // Disable if input is empty
+               disabled={!userInput.trim()}
                title="Save current input as a prompt"
              >
                Save Prompt
@@ -70,10 +75,16 @@ const InputSection: React.FC<InputSectionProps> = ({
         id="userInput"
         value={userInput}
         onChange={onUserInputChange}
-        placeholder="Enter your message or draft here..." 
+        placeholder="Type anything here - your raw thoughts, draft email, quick notes... Don't worry about tone or formality, we'll help polish it up! 
+
+Examples:
+- need to tell the team about project delay but dont want to sound negative
+- thanks for the feedback on my proposal, some good points but disagree with conclusion
+- excited about new role but need to sound professional in announcement
+- meeting notes from yesterday were confusing, need to clarify action items"
         maxLength={maxLength}
-        rows={6}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out resize-y"
+        rows={8}
+        className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out resize-y font-normal text-base"
       />
       <div className="absolute bottom-2 right-2 flex items-center space-x-2">
          {userInput.length > 0 && ( // Show Clear button only if there is input
