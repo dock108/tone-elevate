@@ -505,7 +505,7 @@ function App() {
             isOpen={showSavedPromptsModal} 
             onClose={handleToggleSavedPromptsModal} 
             savedPrompts={savedPrompts}
-            onLoadPrompt={handleLoadSavedPrompt} 
+            onSelectPrompt={handleLoadSavedPrompt}
             onDeletePrompt={handleDeleteSavedPrompt}
             isLoading={isLoadingPrompts}
           />
