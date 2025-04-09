@@ -1,0 +1,6 @@
+# Allow all ethical web crawlers access to the site.
+User-agent: *
+Allow: /
+
+# Optionally, add a sitemap location later if you generate one
+# Sitemap: https://toneelevate.com/sitemap.xml

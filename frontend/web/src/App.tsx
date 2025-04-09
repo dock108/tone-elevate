@@ -426,116 +426,111 @@ function App() {
 
   // --- JSX Return ---
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 text-gray-800 font-sans">
-      <Toaster position="top-center" reverseOrder={false} />
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      {/* Pass auth handlers and session to Header */}
       <Header 
         session={session}
         onLoginClick={handleOpenAuthModal}
         onLogoutClick={handleLogout}
       />
 
-      {/* Main Content Area */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-64"> {/* Changed from max-w-7xl and removed grid */}
-        {/* Left Column: Input, Config, Actions */}
-        <div className="space-y-6 max-w-4xl mx-auto"> {/* Added mx-auto and max-w-4xl for centered content */}
-          {/* Add a placeholder or message if user is not logged in but tries to compare? */} 
-          {!session?.user && (
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                  <p className="text-sm text-yellow-700">
-                     ✨ <button onClick={handleOpenAuthModal} className="font-medium underline hover:text-yellow-800">Log in or Sign up</button> to compare multiple tone variations side-by-side!
-                  </p>
-              </div>
-          )}
+      <main className="flex-grow container mx-auto px-4 py-8">
+        {/* Add the H1 tag here */}
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-800 text-center mb-8">
+          Get the Right Tone: Craft Perfect Messages for Any Audience with ToneElevate
+        </h1>
 
-          {/* Tone Templates Section (Moved Above Input) */}
-          <ToneTemplates
-            templates={toneTemplatesData}
-            onSelectTemplate={handleSelectToneTemplate}
+        {/* Existing sections wrapped in a div for potential grid layout later */}
+        <div className="space-y-8">
+          {/* Quick Start Templates Section */}
+          <ToneTemplates 
+            templates={toneTemplatesData} 
+            onSelectTemplate={handleSelectToneTemplate} 
           />
 
-          {/* Pass necessary state and handlers to child components */}
+          {/* Input Section */}
           <InputSection 
-            userInput={userInput}
-            onUserInputChange={handleUserInputChange}
+            userInput={userInput} 
+            onInputChange={handleUserInputChange} 
             onClearInput={handleClearInput}
             maxLength={MAX_INPUT_LENGTH}
-            onSavePrompt={() => handleSaveCurrentPrompt()}
-            onLoadPrompt={handleToggleSavedPromptsModal}
-            isLoggedIn={!!session?.user}
           />
-          {/* Show Single Tone Selector OR Multi Tone Selector */} 
-          {session?.user ? (
-            <MultiToneSelector 
-                toneOptions={toneOptions}
-                selectedTones={comparisonTones}
-                onSelectionChange={handleComparisonToneChange}
-                maxSelection={MAX_COMPARISON_TONES}
-                isLoggedIn={!!session?.user}
-            />
-          ) : (
-             // Show original single selector if not logged in
-            <ConfigSection 
-              selectedTone={selectedTone}
-              selectedContext={selectedContext}
-              toneOptions={toneOptions}
-              contextOptions={contextOptions}
-              onToneChange={handleToneChange}
-              onContextChange={handleContextChange}
+          
+          {/* Configuration Section */}
+          <ConfigSection
+            selectedTone={selectedTone}
+            selectedContext={selectedContext}
+            toneOptions={toneOptions}
+            contextOptions={contextOptions}
+            onToneChange={handleToneChange}
+            onContextChange={handleContextChange}
+          />
+
+          {/* Multi-Tone Selector (Optional/Conditional Rendering) */}
+          {/* Conditionally render if needed, e.g., based on user plan or feature flag */}
+          <MultiToneSelector 
+            toneOptions={toneOptions} 
+            selectedTones={comparisonTones} 
+            onChange={handleComparisonToneChange}
+            maxSelection={MAX_COMPARISON_TONES}
+          />
+
+          {/* Action Section */}
+          <ActionSection 
+            isGenerating={isGenerating || isComparing} 
+            onGenerate={handleGenerateOrCompare} 
+            canGenerate={isInputValid && !hasJustGenerated}
+            canSave={!!session?.user?.id && isInputValid} // Only allow save if logged in and input exists
+            onSave={handleSaveCurrentPrompt}
+            onLoad={handleToggleSavedPromptsModal} // Use this to open the modal
+            showSaveLoadButtons={!!session?.user?.id} // Show save/load only if logged in
+          />
+
+          {/* Output Section(s) */}
+          {/* Single generation output */}
+          {generatedMessage && !isComparing && (
+            <OutputSection 
+              generatedMessage={generatedMessage} 
+              isLoading={isGenerating}
+              copyButtonText={copyButtonText}
+              onCopyToClipboard={handleCopyToClipboard}
             />
           )}
-          
-          {/* Show Single Output OR Comparison Output */} 
-          {Object.keys(comparisonResults).length > 0 ? (
-              <ToneComparisonDisplay results={comparisonResults} /> 
-          ) : (
-              <OutputSection 
-                generatedMessage={generatedMessage}
-                isGenerating={isGenerating}
-                copyButtonText={copyButtonText}
-                onCopyToClipboard={handleCopyToClipboard}
-              />
+
+          {/* Comparison output */}
+          {isComparing || Object.keys(comparisonResults).length > 0 && (
+             <ToneComparisonDisplay 
+               results={comparisonResults}
+               isLoading={isComparing}
+               toneOptions={toneOptions} // Pass tone options to map ID to label if needed
+             />
           )}
         </div>
       </main>
 
-      {/* Fixed Action Button Area - Centered Container */} 
-      <div className="fixed bottom-0 left-0 right-0 z-20 px-4 sm:px-6 lg:px-8 pb-4">
-        <div className="max-w-4xl mx-auto"> {/* Changed from max-w-7xl to max-w-4xl */}
-          <ActionSection 
-            onGenerate={handleGenerateOrCompare} 
-            isGenerating={isGenerating || isComparing} 
-            isInputValid={isInputValid}
-            hasJustGenerated={hasJustGenerated}
-            comparisonToneCount={session?.user ? comparisonTones.length : 0} 
-            generateButtonText={'Generate Message'}
-          />
-        </div>
-      </div>
-
-      {/* Saved Prompts Modal (Rendered conditionally) */}
-      {showSavedPromptsModal && (
-        <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><LoadingFallback /></div>}>
-          <SavedPromptsModal
-            isOpen={showSavedPromptsModal}
-            onClose={handleToggleSavedPromptsModal}
-            savedPrompts={savedPrompts}
-            isLoading={isLoadingPrompts}
-            onSelectPrompt={handleLoadSavedPrompt}
+      {/* Footer or other elements if needed */}
+      {/* <footer className="bg-gray-100 p-4 text-center text-sm text-gray-600"> ... </footer> */}
+      
+      {/* Modals & Toaster */} 
+      <Toaster position="bottom-center" />
+      
+      {/* Lazy loaded modals wrapped in Suspense */}
+      <Suspense fallback={<LoadingFallback />}>
+        {showAuthModal && <AuthModal onClose={handleCloseAuthModal} />}
+        {showSavedPromptsModal && session?.user?.id && (
+          <SavedPromptsModal 
+            isOpen={showSavedPromptsModal} 
+            onClose={handleToggleSavedPromptsModal} 
+            prompts={savedPrompts} 
+            onLoadPrompt={handleLoadSavedPrompt} 
             onDeletePrompt={handleDeleteSavedPrompt}
+            isLoading={isLoadingPrompts}
           />
-        </Suspense>
-      )}
-
-      {/* Authentication Modal */}
-      {showAuthModal && (
-        <Suspense fallback={<LoadingFallback />}>
-          <AuthModal 
-            isOpen={showAuthModal}
-            onClose={handleCloseAuthModal}
-          />
-        </Suspense>
-      )}
-
+        )}
+        {/* TODO: Premium features not ready yet */}
+        {/* {showPremiumModal && <PremiumSubscription onClose={() => setShowPremiumModal(false)} />} */}
+        {/* {showPreferencesModal && <UserPreferences onClose={() => setShowPreferencesModal(false)} />} */}
+      </Suspense>
     </div>
   );
 }
