@@ -75,13 +75,13 @@ const InputSection: React.FC<InputSectionProps> = ({
         id="userInput"
         value={userInput}
         onChange={onUserInputChange}
-        placeholder="Type anything here - your raw thoughts, draft email, quick notes... Don't worry about tone or formality, we'll help polish it up! 
+        placeholder="Type your thoughts here... anything at all. We'll help shape it into the right message.
 
 Examples:
-- need to tell the team about project delay but dont want to sound negative
-- thanks for the feedback on my proposal, some good points but disagree with conclusion
-- excited about new role but need to sound professional in announcement
-- meeting notes from yesterday were confusing, need to clarify action items"
+- ugh this sprint is taking way longer than we thought... gotta let sarah and the team know but don't want to freak everyone out
+- hey so i looked at your doc and love most of it but that last section feels off... maybe we could approach it differently?
+- omg got the promotion!!! need to tell everyone but probably shouldn't use exclamation marks lol
+- these notes are all over the place... key points: deadline moved, jake owns design, maria needs backend help asap"
         maxLength={maxLength}
         rows={8}
         className="w-full px-4 py-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out resize-y font-normal text-base"
