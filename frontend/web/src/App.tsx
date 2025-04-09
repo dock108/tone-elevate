@@ -430,31 +430,27 @@ function App() {
   // --- JSX Return ---
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Remove unused auth props from Header */}
       <Header />
 
       <main className="flex-grow container mx-auto px-4 py-8">
-        {/* H1 tag */}
         <h1 className="text-3xl md:text-4xl font-bold text-gray-800 text-center mb-8">
           Get the Right Tone: Craft Perfect Messages for Any Audience with ToneElevate
         </h1>
 
-        {/* Existing sections */}
         <div className="space-y-8">
           <ToneTemplates 
             templates={toneTemplatesData} 
             onSelectTemplate={handleSelectToneTemplate} 
           />
 
-          {/* Fix InputSection prop name */}
           <InputSection 
             userInput={userInput} 
-            onUserInputChange={handleUserInputChange} // Renamed from onInputChange
+            onUserInputChange={handleUserInputChange}
             onClearInput={handleClearInput}
             maxLength={MAX_INPUT_LENGTH}
-            isLoggedIn={!!session?.user?.id} // Added
-            onSavePrompt={handleSaveCurrentPrompt} // Added
-            onLoadPrompt={handleToggleSavedPromptsModal} // Added
+            isLoggedIn={!!session?.user?.id} 
+            onSavePrompt={handleSaveCurrentPrompt}
+            onLoadPrompt={handleToggleSavedPromptsModal}
           />
           
           <ConfigSection
@@ -466,36 +462,32 @@ function App() {
             onContextChange={handleContextChange}
           />
 
-          {/* Fix MultiToneSelector prop name (assuming onSelectionChange) */}
           <MultiToneSelector 
             toneOptions={toneOptions} 
             selectedTones={comparisonTones} 
-            onSelectionChange={handleComparisonToneChange} // Renamed from onChange
+            onSelectionChange={handleComparisonToneChange}
             maxSelection={MAX_COMPARISON_TONES}
-            isLoggedIn={!!session?.user?.id} // Added
+            isLoggedIn={!!session?.user?.id}
           />
 
-          {/* Fix ActionSection props (remove canGenerate) */}
           <ActionSection 
             isGenerating={isGenerating || isComparing} 
             onGenerate={handleGenerateOrCompare} 
-            isInputValid={isInputValid} // Re-added
-            hasJustGenerated={false} // Re-added (pass false since state was removed, or derive)
-            generateButtonText={comparisonTones.length > 0 && !!session?.user?.id ? `Compare ${comparisonTones.length} Tones` : 'Generate Message'} // Re-added dynamic text
-            comparisonToneCount={session?.user ? comparisonTones.length : 0} // Re-added
+            isInputValid={isInputValid} 
+            hasJustGenerated={false}
+            generateButtonText={comparisonTones.length > 0 && !!session?.user?.id ? `Compare ${comparisonTones.length} Tones` : 'Generate Message'} 
+            comparisonToneCount={session?.user ? comparisonTones.length : 0} 
           />
 
-          {/* Fix OutputSection props (remove isLoading) */}
           {generatedMessage && !isComparing && (
             <OutputSection 
               generatedMessage={generatedMessage} 
-              isGenerating={isGenerating} // Added back
+              isGenerating={isGenerating}
               copyButtonText={copyButtonText}
               onCopyToClipboard={handleCopyToClipboard}
             />
           )}
 
-          {/* Fix ToneComparisonDisplay props (remove isLoading) */}
           {isComparing || Object.keys(comparisonResults).length > 0 && (
              <ToneComparisonDisplay 
                results={comparisonResults}
@@ -507,14 +499,12 @@ function App() {
       <Toaster position="bottom-center" />
       
       <Suspense fallback={<LoadingFallback />}>
-        {/* Add missing isOpen prop to AuthModal */}
         {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={handleCloseAuthModal} />}
-        {/* Add missing isOpen prop to SavedPromptsModal */}
         {showSavedPromptsModal && session?.user?.id && (
           <SavedPromptsModal 
             isOpen={showSavedPromptsModal} 
             onClose={handleToggleSavedPromptsModal} 
-            prompts={savedPrompts} 
+            prompts={savedPrompts}
             onLoadPrompt={handleLoadSavedPrompt} 
             onDeletePrompt={handleDeleteSavedPrompt}
             isLoading={isLoadingPrompts}
