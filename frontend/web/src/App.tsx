@@ -73,7 +73,7 @@ function App() {
   // const [showPremiumModal, setShowPremiumModal] = useState(false);
   // const [showPreferencesModal, setShowPreferencesModal] = useState(false);
   const [copyButtonText, setCopyButtonText] = useState('Copy');
-  // const [hasJustGenerated, setHasJustGenerated] = useState(false); // Removed unused state TS6133
+  const [hasJustGenerated, setHasJustGenerated] = useState(false); // State to prevent duplicate submission
 
   // Define tone options mirroring the structure in the backend for consistency
   const toneOptions = [
@@ -190,23 +190,23 @@ function App() {
   };
 
   // --- Auth Handlers ---
-  // const handleOpenAuthModal = () => { // Removed unused handler TS6133
-  //   setShowAuthModal(true);
-  // };
+  const handleOpenAuthModal = () => {
+    setShowAuthModal(true);
+  };
 
   const handleCloseAuthModal = () => {
     setShowAuthModal(false);
   };
 
-  // const handleLogout = async () => { // Removed unused handler TS6133
-  //   const { error } = await supabase.auth.signOut();
-  //   if (error) {
-  //     toast.error(`Logout failed: ${error.message}`);
-  //   } else {
-  //     toast.success('Logged out successfully.');
-  //     setSession(null); 
-  //   }
-  // };
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error(`Logout failed: ${error.message}`);
+    } else {
+      toast.success('Logged out successfully.');
+      setSession(null); // Immediately clear session state
+    }
+  };
 
   // --- Saved Prompts Handlers ---
   const handleToggleSavedPromptsModal = () => {
@@ -371,9 +371,7 @@ function App() {
       if (isMulti) {
         const newResults: Record<string, string | null> = {};
         results.forEach(result => {
-          if (result && typeof result.message === 'string') { // Check result exists
-            newResults[result.toneId] = result.message;
-          }
+          newResults[result.toneId] = result.message;
         });
         setComparisonResults(newResults);
         toast.success(`${results.length} variations generated!`, { id: toastId });
@@ -385,9 +383,8 @@ function App() {
         setComparisonResults({}); // Clear comparison results
       }
       
-      // Removed usage of hasJustGenerated
-      // setHasJustGenerated(true);
-      // setTimeout(() => setHasJustGenerated(false), 1500);
+      setHasJustGenerated(true);
+      setTimeout(() => setHasJustGenerated(false), 1500);
 
     } catch (err) {
       console.error("Error during generation:", err);
@@ -429,88 +426,116 @@ function App() {
 
   // --- JSX Return ---
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
-      <Header />
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 text-gray-800 font-sans">
+      <Toaster position="top-center" reverseOrder={false} />
+      <Header 
+        session={session}
+        onLoginClick={handleOpenAuthModal}
+        onLogoutClick={handleLogout}
+      />
 
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-800 text-center mb-8">
-          Get the Right Tone: Craft Perfect Messages for Any Audience with ToneElevate
-        </h1>
+      {/* Main Content Area */}
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-64"> {/* Changed from max-w-7xl and removed grid */}
+        {/* Left Column: Input, Config, Actions */}
+        <div className="space-y-6 max-w-4xl mx-auto"> {/* Added mx-auto and max-w-4xl for centered content */}
+          {/* Add a placeholder or message if user is not logged in but tries to compare? */} 
+          {!session?.user && (
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                  <p className="text-sm text-yellow-700">
+                     ✨ <button onClick={handleOpenAuthModal} className="font-medium underline hover:text-yellow-800">Log in or Sign up</button> to compare multiple tone variations side-by-side!
+                  </p>
+              </div>
+          )}
 
-        <div className="space-y-8">
-          <ToneTemplates 
-            templates={toneTemplatesData} 
-            onSelectTemplate={handleSelectToneTemplate} 
+          {/* Tone Templates Section (Moved Above Input) */}
+          <ToneTemplates
+            templates={toneTemplatesData}
+            onSelectTemplate={handleSelectToneTemplate}
           />
 
+          {/* Pass necessary state and handlers to child components */}
           <InputSection 
-            userInput={userInput} 
+            userInput={userInput}
             onUserInputChange={handleUserInputChange}
             onClearInput={handleClearInput}
             maxLength={MAX_INPUT_LENGTH}
-            isLoggedIn={!!session?.user?.id} 
-            onSavePrompt={handleSaveCurrentPrompt}
+            onSavePrompt={() => handleSaveCurrentPrompt()}
             onLoadPrompt={handleToggleSavedPromptsModal}
+            isLoggedIn={!!session?.user}
           />
-          
-          <ConfigSection
-            selectedTone={selectedTone}
-            selectedContext={selectedContext}
-            toneOptions={toneOptions}
-            contextOptions={contextOptions}
-            onToneChange={handleToneChange}
-            onContextChange={handleContextChange}
-          />
-
-          <MultiToneSelector 
-            toneOptions={toneOptions} 
-            selectedTones={comparisonTones} 
-            onSelectionChange={handleComparisonToneChange}
-            maxSelection={MAX_COMPARISON_TONES}
-            isLoggedIn={!!session?.user?.id}
-          />
-
-          <ActionSection 
-            isGenerating={isGenerating || isComparing} 
-            onGenerate={handleGenerateOrCompare} 
-            isInputValid={isInputValid} 
-            hasJustGenerated={false}
-            generateButtonText={comparisonTones.length > 0 && !!session?.user?.id ? `Compare ${comparisonTones.length} Tones` : 'Generate Message'} 
-            comparisonToneCount={session?.user ? comparisonTones.length : 0} 
-          />
-
-          {generatedMessage && !isComparing && (
-            <OutputSection 
-              generatedMessage={generatedMessage} 
-              isGenerating={isGenerating}
-              copyButtonText={copyButtonText}
-              onCopyToClipboard={handleCopyToClipboard}
+          {/* Show Single Tone Selector OR Multi Tone Selector */} 
+          {session?.user ? (
+            <MultiToneSelector 
+                toneOptions={toneOptions}
+                selectedTones={comparisonTones}
+                onSelectionChange={handleComparisonToneChange}
+                maxSelection={MAX_COMPARISON_TONES}
+                isLoggedIn={!!session?.user}
+            />
+          ) : (
+             // Show original single selector if not logged in
+            <ConfigSection 
+              selectedTone={selectedTone}
+              selectedContext={selectedContext}
+              toneOptions={toneOptions}
+              contextOptions={contextOptions}
+              onToneChange={handleToneChange}
+              onContextChange={handleContextChange}
             />
           )}
-
-          {isComparing || Object.keys(comparisonResults).length > 0 && (
-             <ToneComparisonDisplay 
-               results={comparisonResults}
-             />
+          
+          {/* Show Single Output OR Comparison Output */} 
+          {Object.keys(comparisonResults).length > 0 ? (
+              <ToneComparisonDisplay results={comparisonResults} /> 
+          ) : (
+              <OutputSection 
+                generatedMessage={generatedMessage}
+                isGenerating={isGenerating}
+                copyButtonText={copyButtonText}
+                onCopyToClipboard={handleCopyToClipboard}
+              />
           )}
         </div>
       </main>
-      
-      <Toaster position="bottom-center" />
-      
-      <Suspense fallback={<LoadingFallback />}>
-        {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={handleCloseAuthModal} />}
-        {showSavedPromptsModal && session?.user?.id && (
-          <SavedPromptsModal 
-            isOpen={showSavedPromptsModal} 
-            onClose={handleToggleSavedPromptsModal} 
+
+      {/* Fixed Action Button Area - Centered Container */} 
+      <div className="fixed bottom-0 left-0 right-0 z-20 px-4 sm:px-6 lg:px-8 pb-4">
+        <div className="max-w-4xl mx-auto"> {/* Changed from max-w-7xl to max-w-4xl */}
+          <ActionSection 
+            onGenerate={handleGenerateOrCompare} 
+            isGenerating={isGenerating || isComparing} 
+            isInputValid={isInputValid}
+            hasJustGenerated={hasJustGenerated}
+            comparisonToneCount={session?.user ? comparisonTones.length : 0} 
+            generateButtonText={'Generate Message'}
+          />
+        </div>
+      </div>
+
+      {/* Saved Prompts Modal (Rendered conditionally) */}
+      {showSavedPromptsModal && (
+        <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><LoadingFallback /></div>}>
+          <SavedPromptsModal
+            isOpen={showSavedPromptsModal}
+            onClose={handleToggleSavedPromptsModal}
             savedPrompts={savedPrompts}
+            isLoading={isLoadingPrompts}
             onSelectPrompt={handleLoadSavedPrompt}
             onDeletePrompt={handleDeleteSavedPrompt}
-            isLoading={isLoadingPrompts}
           />
-        )}
-      </Suspense>
+        </Suspense>
+      )}
+
+      {/* Authentication Modal */}
+      {showAuthModal && (
+        <Suspense fallback={<LoadingFallback />}>
+          <AuthModal 
+            isOpen={showAuthModal}
+            onClose={handleCloseAuthModal}
+          />
+        </Suspense>
+      )}
+
     </div>
   );
 }
