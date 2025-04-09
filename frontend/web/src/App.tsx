@@ -73,7 +73,7 @@ function App() {
   // const [showPremiumModal, setShowPremiumModal] = useState(false);
   // const [showPreferencesModal, setShowPreferencesModal] = useState(false);
   const [copyButtonText, setCopyButtonText] = useState('Copy');
-  const [hasJustGenerated, setHasJustGenerated] = useState(false); // State to prevent duplicate submission
+  // const [hasJustGenerated, setHasJustGenerated] = useState(false); // Removed unused state TS6133
 
   // Define tone options mirroring the structure in the backend for consistency
   const toneOptions = [
@@ -190,23 +190,23 @@ function App() {
   };
 
   // --- Auth Handlers ---
-  const handleOpenAuthModal = () => {
-    setShowAuthModal(true);
-  };
+  // const handleOpenAuthModal = () => { // Removed unused handler TS6133
+  //   setShowAuthModal(true);
+  // };
 
   const handleCloseAuthModal = () => {
     setShowAuthModal(false);
   };
 
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error(`Logout failed: ${error.message}`);
-    } else {
-      toast.success('Logged out successfully.');
-      setSession(null); // Immediately clear session state
-    }
-  };
+  // const handleLogout = async () => { // Removed unused handler TS6133
+  //   const { error } = await supabase.auth.signOut();
+  //   if (error) {
+  //     toast.error(`Logout failed: ${error.message}`);
+  //   } else {
+  //     toast.success('Logged out successfully.');
+  //     setSession(null); 
+  //   }
+  // };
 
   // --- Saved Prompts Handlers ---
   const handleToggleSavedPromptsModal = () => {
@@ -371,7 +371,9 @@ function App() {
       if (isMulti) {
         const newResults: Record<string, string | null> = {};
         results.forEach(result => {
-          newResults[result.toneId] = result.message;
+          if (result && typeof result.message === 'string') { // Check result exists
+            newResults[result.toneId] = result.message;
+          }
         });
         setComparisonResults(newResults);
         toast.success(`${results.length} variations generated!`, { id: toastId });
@@ -383,8 +385,9 @@ function App() {
         setComparisonResults({}); // Clear comparison results
       }
       
-      setHasJustGenerated(true);
-      setTimeout(() => setHasJustGenerated(false), 1500);
+      // Removed usage of hasJustGenerated
+      // setHasJustGenerated(true);
+      // setTimeout(() => setHasJustGenerated(false), 1500);
 
     } catch (err) {
       console.error("Error during generation:", err);
@@ -449,6 +452,9 @@ function App() {
             onUserInputChange={handleUserInputChange} // Renamed from onInputChange
             onClearInput={handleClearInput}
             maxLength={MAX_INPUT_LENGTH}
+            isLoggedIn={!!session?.user?.id} // Added
+            onSavePrompt={handleSaveCurrentPrompt} // Added
+            onLoadPrompt={handleToggleSavedPromptsModal} // Added
           />
           
           <ConfigSection
@@ -466,22 +472,24 @@ function App() {
             selectedTones={comparisonTones} 
             onSelectionChange={handleComparisonToneChange} // Renamed from onChange
             maxSelection={MAX_COMPARISON_TONES}
+            isLoggedIn={!!session?.user?.id} // Added
           />
 
           {/* Fix ActionSection props (remove canGenerate) */}
           <ActionSection 
             isGenerating={isGenerating || isComparing} 
             onGenerate={handleGenerateOrCompare} 
-            canSave={!!session?.user?.id && isInputValid}
-            onSave={handleSaveCurrentPrompt}
-            onLoad={handleToggleSavedPromptsModal}
-            showSaveLoadButtons={!!session?.user?.id}
+            isInputValid={isInputValid} // Re-added
+            hasJustGenerated={false} // Re-added (pass false since state was removed, or derive)
+            generateButtonText={comparisonTones.length > 0 && !!session?.user?.id ? `Compare ${comparisonTones.length} Tones` : 'Generate Message'} // Re-added dynamic text
+            comparisonToneCount={session?.user ? comparisonTones.length : 0} // Re-added
           />
 
           {/* Fix OutputSection props (remove isLoading) */}
           {generatedMessage && !isComparing && (
             <OutputSection 
               generatedMessage={generatedMessage} 
+              isGenerating={isGenerating} // Added back
               copyButtonText={copyButtonText}
               onCopyToClipboard={handleCopyToClipboard}
             />
@@ -491,7 +499,6 @@ function App() {
           {isComparing || Object.keys(comparisonResults).length > 0 && (
              <ToneComparisonDisplay 
                results={comparisonResults}
-               toneOptions={toneOptions}
              />
           )}
         </div>
