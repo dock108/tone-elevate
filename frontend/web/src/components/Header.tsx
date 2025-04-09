@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from './ui/button';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@clerk/clerk-react';
-import UserNav from './UserNav';
-import ToneElevateLogo from '../assets/tone-elevate-logo-full.png'; // Import the logo
+import UserNav from '@/components/UserNav';
+import ToneElevateLogo from '@/assets/tone-elevate-logo-full.png'; // Import the logo
 
 const Header: React.FC = () => {
   const { userId } = useAuth();
