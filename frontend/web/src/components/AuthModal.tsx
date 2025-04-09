@@ -53,7 +53,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                 {/* Supabase Auth UI Component */}
                 <Auth
                   supabaseClient={supabase}
-                  appearance={{ theme: ThemeSupa }}
                   theme="light"
                   providers={[]}
                   socialLayout="horizontal"

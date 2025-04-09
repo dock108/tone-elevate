@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 interface InputSectionProps {
   // Define props needed from App.tsx (e.g., userInput value, change handler, max length)

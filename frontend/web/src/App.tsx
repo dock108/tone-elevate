@@ -1,7 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { supabase } from './lib/supabaseClient'; // Import supabase client
-import { Session /*, RealtimeChannel */ } from '@supabase/supabase-js'; // Import Session type
-import ReactMarkdown from 'react-markdown'; // Import react-markdown
+import { Session } from '@supabase/supabase-js'; // Import Session type
 // Import our minimized App.css with only essential styles
 import './App.css';
 
@@ -51,9 +50,6 @@ const AuthModal = lazy(() => import('./components/AuthModal')); // Import AuthMo
 function App() {
   // --- State Variables ---
   const [session, setSession] = useState<Session | null>(null);
-  // const [profile, setProfile] = useState<any | null>(null); // Keep commented if not fully used yet
-  // const [loadingProfile, setLoadingProfile] = useState(true); // Keep commented if not fully used yet
-
   const [generatedMessage, setGeneratedMessage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [userInput, setUserInput] = useState<string>('');
