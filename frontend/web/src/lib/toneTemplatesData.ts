@@ -11,43 +11,59 @@ export interface ToneTemplate {
 // Define example templates
 export const toneTemplatesData: ToneTemplate[] = [
   {
-    id: 'tpl_formal_request',
-    name: 'Formal Request Email',
-    description: 'A polite, formal email to request information or action.',
-    prompt_text: 'Dear [Recipient Name],\n\nI am writing to formally request [details of request].\n\nCould you please provide [specific information needed] by [date/time]?\n\nThank you for your time and assistance.\n\nSincerely,\n[Your Name]',
-    tone_id: 'Formal', // Matches a toneOption id
-    context: 'Email', // Matches a contextOption
+    id: 'tpl_project_delay',
+    name: 'Project Delay Update',
+    description: 'When you need to communicate delays or setbacks professionally',
+    prompt_text: 'ugh this is not great... we're definitely not hitting that March deadline. qa found some major security issues, design changes took longer than expected, and the client kept changing requirements. probably looking at 2-3 weeks delay minimum. need to let everyone know but don't want to cause panic',
+    tone_id: 'Professional - Director',
+    context: 'Email',
   },
   {
-    id: 'tpl_team_update',
-    name: 'Quick Team Update (Teams)',
-    description: 'A brief, professional update for your team chat.',
-    prompt_text: 'Quick update on [Project/Task]:\n- Status: [Current Status]\n- Next Steps: [Action Items]\n- Blockers: [Any Obstacles]\n\nLet me know if you have questions.',
-    tone_id: 'Professional - Peer Group', // Matches a toneOption id
-    context: 'Teams Chat', // Matches a contextOption
+    id: 'tpl_feedback_response',
+    name: 'Feedback Response',
+    description: 'When you want to acknowledge feedback while maintaining your position',
+    prompt_text: 'just got your feedback on the proposal - thanks for the detailed review! love most of your suggestions especially around the timeline and budget. but honestly not sure about restructuring the whole technical approach this late... maybe we can find a middle ground?',
+    tone_id: 'Professional - Peer Group',
+    context: 'Teams Chat',
   },
   {
-    id: 'tpl_casual_follow_up',
-    name: 'Casual Follow-Up',
-    description: 'A friendly, informal reminder or follow-up message.',
-    prompt_text: 'Hey [Name], just wanted to quickly follow up on [topic]. Any updates? Let me know when you have a moment!',
-    tone_id: 'Casual', // Matches a toneOption id
-    context: 'General Text', // Matches a contextOption
+    id: 'tpl_celebration_post',
+    name: 'Team Win Announcement',
+    description: 'Share good news or celebrate achievements',
+    prompt_text: 'YES!! team crushed it today - final presentation went amazing, client literally said it was the best pitch they've seen all year! sarah's demo was perfect, alex handled the tough questions like a pro, and everyone's energy was just *chefs kiss* need to give the team a proper shoutout',
+    tone_id: 'Enthusiastic',
+    context: 'LinkedIn Post',
   },
   {
-    id: 'tpl_linkedin_share',
-    name: 'LinkedIn Post Idea',
-    description: 'A template for sharing an article or insight professionally.',
-    prompt_text: 'Sharing an insightful article on [Topic]: [Link]\n\nMy key takeaway is [Your Insight]. Curious to hear others\' thoughts on this. #LinkedIn #ProfessionalDevelopment #[RelevantHashtag]',
-    tone_id: 'Informative', // Matches a toneOption id
-    context: 'LinkedIn Post', // Matches a contextOption
+    id: 'tpl_meeting_reschedule',
+    name: 'Meeting Reschedule',
+    description: 'When you need to move or cancel a meeting last minute',
+    prompt_text: 'hey really sorry but something urgent came up with the client - their prod system is having issues and we need all hands on deck. can we move our 2pm sync? should be resolved by tomorrow morning. know this is last minute :/',
+    tone_id: 'Professional - Peer Group',
+    context: 'Teams Chat',
   },
-    {
-    id: 'tpl_meeting_request',
-    name: 'Meeting Request (Boss)',
-    description: 'A concise request to schedule a meeting with your manager.',
-    prompt_text: 'Hi [Boss\'s Name], could we schedule a brief meeting to discuss [Topic]? Please let me know what time works best for you next week. Thanks!',
-    tone_id: 'Professional - Boss', // Matches a toneOption id
-    context: 'Email', // Matches a contextOption
+  {
+    id: 'tpl_code_review',
+    name: 'Code Review Feedback',
+    description: 'Provide constructive feedback on code or technical work',
+    prompt_text: 'looked through your PR - code is super clean and love the new error handling! couple thoughts: might want to add some more comments in the auth flow (gets a bit complex), and maybe we should split that huge utils file into smaller modules? also found a small memory leak in the websocket connection',
+    tone_id: 'Professional - Peer Group',
+    context: 'GitHub Comment',
   },
+  {
+    id: 'tpl_resource_request',
+    name: 'Resource Request',
+    description: 'When you need to ask for additional team members or budget',
+    prompt_text: 'been crunching the numbers for next quarter... we're definitely understaffed for what's coming. need at least 2 more senior devs and maybe a designer? current team is burning out trying to keep up with all the new features. plus the cloud costs are way higher than we planned. should probably loop in finance too',
+    tone_id: 'Professional - Director',
+    context: 'Email',
+  },
+  {
+    id: 'tpl_conflict_resolution',
+    name: 'Team Conflict Resolution',
+    description: 'Address disagreements or tensions professionally',
+    prompt_text: 'getting worried about the tension between the frontend and backend teams... lots of finger pointing about these api changes. need to smooth things over without taking sides. maybe we should do a proper retro? both teams have valid points but this blame game isn't helping anyone',
+    tone_id: 'Professional - Manager',
+    context: 'Teams Chat',
+  }
 ]; 
