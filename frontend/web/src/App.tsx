@@ -30,8 +30,9 @@ import MultiToneSelector from './components/MultiToneSelector'; // Import the ne
 import ToneComparisonDisplay from './components/ToneComparisonDisplay'; // Import the comparison display
 
 // Lazy load potentially heavy/unused components
-const PremiumSubscription = lazy(() => import('./components/PremiumSubscription'));
-const UserPreferences = lazy(() => import('./components/UserPreferences'));
+// TODO: Premium features not ready yet
+// const PremiumSubscription = lazy(() => import('./components/PremiumSubscription'));
+// const UserPreferences = lazy(() => import('./components/UserPreferences'));
 const SavedPromptsModal = lazy(() => import('./components/SavedPromptsModal')); // Placeholder for the modal
 const AuthModal = lazy(() => import('./components/AuthModal')); // Import AuthModal
 
@@ -68,8 +69,9 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false); // State for Auth Modal
 
   // Other UI State
-  const [showPremiumModal, setShowPremiumModal] = useState(false); // Keep if used
-  const [showPreferencesModal, setShowPreferencesModal] = useState(false); // Keep if used
+  // TODO: Premium features not ready yet
+  // const [showPremiumModal, setShowPremiumModal] = useState(false);
+  // const [showPreferencesModal, setShowPreferencesModal] = useState(false);
   const [copyButtonText, setCopyButtonText] = useState('Copy');
   const [hasJustGenerated, setHasJustGenerated] = useState(false); // State to prevent duplicate submission
 
@@ -166,7 +168,8 @@ function App() {
 
   // --- Derived state for input validation ---
   const isInputValid = userInput.trim().length > 0;
-  const canCompare = session?.user && comparisonTones.length > 0 && isInputValid;
+  // TODO: Comparison feature not fully implemented yet
+  // const canCompare = session?.user && comparisonTones.length > 0 && isInputValid;
 
   // --- Event Handlers ---
   const handleUserInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
