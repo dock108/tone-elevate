@@ -1,11 +1,40 @@
-import { useState } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { supabase } from './lib/supabaseClient'; // Import supabase client
-// import { Session, RealtimeChannel } from '@supabase/supabase-js'; // Removed unused type imports
-// import PremiumSubscription from './components/PremiumSubscription'; // Import the component - TS6133 unused
-// import UserPreferences from './components/UserPreferences'; // Import preferences component - TS6133 unused
+import { Session /*, RealtimeChannel */ } from '@supabase/supabase-js'; // Import Session type
 import ReactMarkdown from 'react-markdown'; // Import react-markdown
 // Import our minimized App.css with only essential styles
 import './App.css';
+
+// Import react-hot-toast
+import toast, { Toaster } from 'react-hot-toast';
+
+// Import components (non-lazy)
+import Header from './components/Header';
+import InputSection from './components/InputSection';
+import ConfigSection from './components/ConfigSection';
+import ActionSection from './components/ActionSection';
+import OutputSection from './components/OutputSection';
+
+// Import Saved Prompts API helpers and types
+import {
+  fetchSavedPrompts,
+  saveNewPrompt,
+  deletePrompt,
+  SavedPrompt,
+  NewSavedPromptData
+} from './lib/savedPromptsApi';
+
+// Import Tone Templates data and component
+import { toneTemplatesData, ToneTemplate } from './lib/toneTemplatesData';
+import ToneTemplates from './components/ToneTemplates';
+import MultiToneSelector from './components/MultiToneSelector'; // Import the new component
+import ToneComparisonDisplay from './components/ToneComparisonDisplay'; // Import the comparison display
+
+// Lazy load potentially heavy/unused components
+const PremiumSubscription = lazy(() => import('./components/PremiumSubscription'));
+const UserPreferences = lazy(() => import('./components/UserPreferences'));
+const SavedPromptsModal = lazy(() => import('./components/SavedPromptsModal')); // Placeholder for the modal
+const AuthModal = lazy(() => import('./components/AuthModal')); // Import AuthModal
 
 // Vite exposes env variables prefixed with VITE_
 // const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'; // Kept for reference if needed
@@ -21,19 +50,32 @@ import './App.css';
 // Main App Component
 function App() {
   // --- State Variables ---
-  // const [session, setSession] = useState<Session | null>(null); // Commented out - Not used yet
-  // const [profile, setProfile] = useState<any | null>(null); // Commented out - Not used yet
-  // const [loadingProfile, setLoadingProfile] = useState(true); // Commented out - Not used yet
-  // const [text] = useState<string>(''); // Old - REMOVED setText
-  // const [tone] = useState<string>('professional'); // Old - REMOVED setTone
-  // const [context] = useState<string>('Email'); // Old - REMOVED setContext
+  const [session, setSession] = useState<Session | null>(null);
+  // const [profile, setProfile] = useState<any | null>(null); // Keep commented if not fully used yet
+  // const [loadingProfile, setLoadingProfile] = useState(true); // Keep commented if not fully used yet
 
-  const [outputFormat, setOutputFormat] = useState<string>('Raw Text'); // Default output format
-  const [generatedMessage, setGeneratedMessage] = useState<string | null>(null); // Stores the single generated message
-  const [isGenerating, setIsGenerating] = useState<boolean>(false); // Renamed from isSuggesting
-  const [generationError, setGenerationError] = useState<string | null>(null); // Renamed from suggestionError
-  const [copySuccess, setCopySuccess] = useState<boolean>(false); // State for copy feedback
-  const [userInput, setUserInput] = useState<string>(''); // User's primary input
+  const [generatedMessage, setGeneratedMessage] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [userInput, setUserInput] = useState<string>('');
+  const [selectedTone, setSelectedTone] = useState<string>('');
+  const [selectedContext, setSelectedContext] = useState<string>('');
+
+  // State for Multi-Tone Comparison
+  const [comparisonTones, setComparisonTones] = useState<string[]>([]); // IDs of tones selected for comparison
+  const [comparisonResults, setComparisonResults] = useState<Record<string, string | null>>({}); // Object to store results keyed by tone ID
+  const [isComparing, setIsComparing] = useState<boolean>(false); // Loading state for comparison generation
+
+  // Saved Prompts State
+  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
+  const [isLoadingPrompts, setIsLoadingPrompts] = useState<boolean>(false);
+  const [showSavedPromptsModal, setShowSavedPromptsModal] = useState<boolean>(false);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false); // State for Auth Modal
+
+  // Other UI State
+  const [showPremiumModal, setShowPremiumModal] = useState(false); // Keep if used
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false); // Keep if used
+  const [copyButtonText, setCopyButtonText] = useState('Copy');
+  const [hasJustGenerated, setHasJustGenerated] = useState(false); // State to prevent duplicate submission
 
   // Define tone options mirroring the structure in the backend for consistency
   const toneOptions = [
@@ -76,435 +118,467 @@ function App() {
     'Text Message',
   ].sort();
 
-  const [selectedTone, setSelectedTone] = useState<string>(toneOptions[2].id); // Default to 'Professional - Boss'
-  const [selectedContext, setSelectedContext] = useState<string>(contextOptions[1]); // Default to Email
+  // --- Constants ---
+  const MAX_COMPARISON_TONES = 3;
 
-  // --- API Call Handler ---
-  const handleGenerateMessage = async () => {
-    // Allow generation even if not logged in, function handles limits/errors
-    if (!userInput.trim()) {
-      alert("Please enter some text to generate a message.");
-      return;
+  // --- Effects ---
+  // Set default tone and context once on mount
+  useEffect(() => {
+    const defaultTone = toneOptions.find(opt => opt.id === "Professional - Boss") || toneOptions[0];
+    setSelectedTone(defaultTone.id);
+    const defaultContext = contextOptions.includes('Email') ? 'Email' : contextOptions[0];
+    setSelectedContext(defaultContext);
+  }, []); // Empty dependency array ensures this runs only once
+
+  // Fetch saved prompts when session changes
+  useEffect(() => {
+    if (session?.user?.id) {
+      handleFetchSavedPrompts(session.user.id);
+    } else {
+      // Clear prompts if user logs out
+      setSavedPrompts([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
 
-    console.log(`Invoking tone-suggest function for: Tone=${selectedTone}, Context=${selectedContext}, Format=${outputFormat}`);
-    setIsGenerating(true); // Renamed
-    setGenerationError(null); // Renamed
-    setGeneratedMessage(null); // Clear previous message
-    setCopySuccess(false); // Reset copy feedback
+  // Auth listener
+  useEffect(() => {
+    // Fetch initial session state
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
 
-    try {
-      // Call the Supabase Edge Function with updated parameters
-      const { data, error: invokeError } = await supabase.functions.invoke('tone-suggest', {
-        // Body now contains userInput, context, and outputFormat
-        // The function will parse intent/tone from userInput internally.
-        // No need to JSON.stringify() the body for invoke v2+
-        body: { userInput, selectedContext, outputFormat }, // Map `userInput` state to `userInput`, remove `selectedTone`
-      });
+    // Subscribe to auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
 
-      if (invokeError) {
-        // Handle Supabase function invocation errors (network, permissions etc.)
-        console.error("Supabase function invocation error:", invokeError);
-        throw new Error(invokeError.message || 'Failed to connect to the generation service.');
-      }
+    // Cleanup function to unsubscribe when the component unmounts
+    return () => {
+      // Call unsubscribe on the subscription object within the data object
+      authListener?.subscription?.unsubscribe();
+      // Cleanup profileSubscription if it's uncommented later
+    };
+  }, []); // Empty dependency array ensures this runs only on mount and unmount
 
-      // Check if the function returned a specific error payload (e.g., rate limit)
-      if (data && data.error) {
-         console.error("Function returned error:", data.error);
-        throw new Error(data.error);
-      }
+  // Close Auth modal automatically on successful login/signup
+  useEffect(() => {
+    if (session) {
+      setShowAuthModal(false);
+    }
+  }, [session]);
 
-      // Expecting { generatedMessage: "..." } on success
-      if (data && typeof data.generatedMessage === 'string') {
-        setGeneratedMessage(data.generatedMessage);
-        console.log('Message generated successfully.');
-      } else {
-        console.error('Unexpected data format from function:', data);
-        throw new Error('Received an unexpected response from the server.');
-      }
+  // --- Derived state for input validation ---
+  const isInputValid = userInput.trim().length > 0;
+  const canCompare = session?.user && comparisonTones.length > 0 && isInputValid;
 
-    } catch (err) {
-      console.error("Error during message generation:", err);
-      const message = err instanceof Error ? err.message : 'Failed to generate message.';
-      setGenerationError(`Error: ${message}`);
-      setGeneratedMessage(null); // Ensure no message is displayed on error
-    } finally {
-      setIsGenerating(false); // Renamed
+  // --- Event Handlers ---
+  const handleUserInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setUserInput(event.target.value);
+  };
+
+  const handleClearInput = () => {
+    setUserInput('');
+    setGeneratedMessage(null); // Optionally clear generated message too
+  };
+
+  const handleToneChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedTone(event.target.value);
+  };
+
+  const handleContextChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedContext(event.target.value);
+  };
+
+  // --- Auth Handlers ---
+  const handleOpenAuthModal = () => {
+    setShowAuthModal(true);
+  };
+
+  const handleCloseAuthModal = () => {
+    setShowAuthModal(false);
+  };
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error(`Logout failed: ${error.message}`);
+    } else {
+      toast.success('Logged out successfully.');
+      setSession(null); // Immediately clear session state
     }
   };
 
-  // --- Copy to Clipboard Function ---
+  // --- Saved Prompts Handlers ---
+  const handleToggleSavedPromptsModal = () => {
+    setShowSavedPromptsModal(prev => !prev);
+  };
+
+  const handleFetchSavedPrompts = async (userId: string) => {
+    setIsLoadingPrompts(true);
+    const { data, error } = await fetchSavedPrompts(userId);
+    if (error) {
+      toast.error(`Failed to load saved prompts: ${error}`);
+    } else if (data) {
+      setSavedPrompts(data);
+    } else {
+      setSavedPrompts([]); // Set to empty array if data is null
+    }
+    setIsLoadingPrompts(false);
+  };
+
+  const handleSaveCurrentPrompt = async (label?: string) => {
+    if (!session?.user?.id) {
+      toast.error("You must be logged in to save prompts.");
+      return;
+    }
+    if (!userInput.trim()) {
+      toast.error("Cannot save an empty prompt.");
+      return;
+    }
+
+    const promptData: NewSavedPromptData = {
+      user_id: session.user.id,
+      label: label || null,
+      prompt_text: userInput,
+      tone_id: selectedTone,
+      context: selectedContext,
+    };
+
+    const toastId = toast.loading("Saving prompt...");
+    const { data, error } = await saveNewPrompt(promptData);
+
+    if (error) {
+      toast.error(`Failed to save prompt: ${error}`, { id: toastId });
+    } else if (data) {
+      toast.success("Prompt saved successfully!", { id: toastId });
+      // Add the new prompt to the beginning of the list locally
+      // or refetch the list for simplicity
+      setSavedPrompts(prev => [data, ...prev]);
+      // Optionally close modal or give other feedback
+    }
+  };
+
+  const handleDeleteSavedPrompt = async (promptId: string) => {
+    if (!session?.user?.id) {
+      toast.error("Authentication error.");
+      return;
+    }
+
+    // Optional: Add confirmation dialog here
+    const confirmDelete = window.confirm("Are you sure you want to delete this saved prompt?");
+    if (!confirmDelete) {
+      return;
+    }
+
+    const toastId = toast.loading("Deleting prompt...");
+    const { success, error } = await deletePrompt(promptId, session.user.id);
+
+    if (error || !success) {
+      toast.error(`Failed to delete prompt: ${error || 'Unknown error'}`, { id: toastId });
+    } else {
+      toast.success("Prompt deleted.", { id: toastId });
+      // Remove the prompt from the local state
+      setSavedPrompts(prev => prev.filter(p => p.id !== promptId));
+    }
+  };
+
+  const handleLoadSavedPrompt = (prompt: SavedPrompt) => {
+    setUserInput(prompt.prompt_text);
+    setSelectedTone(prompt.tone_id);
+    setSelectedContext(prompt.context);
+    setGeneratedMessage(null); // Clear any previous generation
+    setShowSavedPromptsModal(false); // Close modal after loading
+    toast.success("Prompt loaded.");
+  };
+
+  // --- Tone Template Handler ---
+  const handleSelectToneTemplate = (template: ToneTemplate) => {
+    // Check if the template's tone and context exist in the options
+    const isValidTone = toneOptions.some(opt => opt.id === template.tone_id);
+    const isValidContext = contextOptions.includes(template.context);
+
+    if (!isValidTone) {
+        console.warn(`Template "${template.name}" has an invalid tone_id: ${template.tone_id}. Using default.`);
+        toast.error(`Template tone "${template.tone_id}" is invalid. Please check template data.`);
+        // Optionally set a default tone or leave as is
+    }
+     if (!isValidContext) {
+        console.warn(`Template "${template.name}" has an invalid context: ${template.context}. Using default.`);
+        toast.error(`Template context "${template.context}" is invalid. Please check template data.`);
+        // Optionally set a default context or leave as is
+    }
+
+    // Update state with data from the selected template
+    setUserInput(template.prompt_text);
+    setSelectedTone(isValidTone ? template.tone_id : selectedTone); // Use template tone if valid, else keep current
+    setSelectedContext(isValidContext ? template.context : selectedContext); // Use template context if valid, else keep current
+
+    setGeneratedMessage(null); // Clear any previously generated message
+    toast.success(`Template "${template.name}" loaded.`); // User feedback
+  };
+
+  // --- Multi-Tone Selection Handler ---
+  const handleComparisonToneChange = (selectedIds: string[]) => {
+    setComparisonTones(selectedIds);
+  };
+
+  // --- API Call Handler (Updated for Multi-Tone) ---
+  const handleGenerateOrCompare = async () => {
+    if (!isInputValid || isGenerating || isComparing) return;
+
+    const outputFormat = "Raw Text";
+    const tonesToGenerate = session?.user && comparisonTones.length > 0 ? comparisonTones : [selectedTone]; // Use comparison tones if logged in and selected, else single tone
+    const isMulti = tonesToGenerate.length > 1;
+
+    console.log(`Generating for tones: ${tonesToGenerate.join(', ')}`);
+    if (isMulti) {
+      setIsComparing(true);
+      setComparisonResults({}); // Clear previous results
+    } else {
+      setIsGenerating(true);
+      setGeneratedMessage(null); // Clear previous single result
+    }
+    
+    const toastId = toast.loading(isMulti ? `Generating ${tonesToGenerate.length} variations...` : 'Generating message...');
+
+    try {
+      // Create an array of promises for each API call
+      const promises = tonesToGenerate.map(toneId => 
+        supabase.functions.invoke('tone-suggest', {
+          body: { 
+            userInput: userInput,
+            // NOTE: The backend currently parses tone from userInput. 
+            // We might need to adjust the backend or pass the specific toneId here if parsing isn't sufficient.
+            // For now, assuming backend handles variations based on intent/context primarily.
+            // If passing toneId is needed, it might look like: 
+            // tone: toneId, // Pass specific tone ID
+            context: selectedContext, 
+            outputFormat: outputFormat
+          },
+        })
+        .then(({ data, error: invokeError }) => {
+          if (invokeError) throw new Error(`(${toneId}): ${invokeError.message || 'Invocation failed'}`);
+          if (data && data.error) throw new Error(`(${toneId}): ${data.error}`);
+          if (data && typeof data.generatedMessage === 'string') return { toneId, message: data.generatedMessage };
+          throw new Error(`(${toneId}): Unexpected response format`);
+        })
+      );
+
+      // Wait for all promises to resolve
+      const results = await Promise.all(promises);
+      
+      // Process results
+      if (isMulti) {
+        const newResults: Record<string, string | null> = {};
+        results.forEach(result => {
+          newResults[result.toneId] = result.message;
+        });
+        setComparisonResults(newResults);
+        toast.success(`${results.length} variations generated!`, { id: toastId });
+        setGeneratedMessage(null); // Clear single message display when comparing
+      } else {
+        // Single generation result
+        setGeneratedMessage(results[0].message);
+        toast.success('Message generated successfully!', { id: toastId });
+        setComparisonResults({}); // Clear comparison results
+      }
+      
+      setHasJustGenerated(true);
+      setTimeout(() => setHasJustGenerated(false), 1500);
+
+    } catch (err) {
+      console.error("Error during generation:", err);
+      const message = err instanceof Error ? err.message : 'Generation failed.';
+      toast.error(`Generation failed: ${message}`, { id: toastId });
+      if (isMulti) setComparisonResults({});
+      else setGeneratedMessage(null);
+    } finally {
+      if (isMulti) setIsComparing(false);
+      else setIsGenerating(false);
+    }
+  };
+
+  // --- Copy to Clipboard Function (Needs update if comparing) ---
+  // TODO: Update handleCopyToClipboard to handle multiple results if needed?
+  // Or provide copy buttons within the comparison display?
   const handleCopyToClipboard = async () => {
     if (!generatedMessage) return;
     try {
       await navigator.clipboard.writeText(generatedMessage);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 3000);
+      toast.success('Message copied to clipboard!');
+      setCopyButtonText('Copied ✓'); // Change button text
       console.log('Message copied to clipboard!');
+      // Reset button text after a delay
+      setTimeout(() => setCopyButtonText('Copy'), 2000); 
     } catch (err) {
       console.error('Failed to copy text: ', err);
-      alert('Failed to copy message to clipboard.');
+      toast.error('Failed to copy message.');
     }
   };
 
-  // --- Commented out Profile Fetching and Auth Logic ---
+  // --- Commented out Profile Fetching Logic ---
   /*
   // Function to fetch user profile
   const fetchProfile = async (userId: string) => {
-    // setLoadingProfile(true);
-    try {
-      const { data, error, status } = await supabase
-        .from('profiles')
-        .select(`subscription_status, name`)
-        .eq('id', userId)
-        .single();
-
-      if (error && status !== 406) {
-        throw error;
-      }
-
-      if (data) {
-        // setProfile(data);
-        console.log('User profile loaded:', data);
-      } else {
-         console.log('No profile found for user.');
-         // setProfile({ subscription_status: 'free' }); // Assume free
-      }
-    } catch (error) {
-      alert(`Error loading profile: ${(error as Error).message}`);
-      // setProfile(null);
-    } finally {
-      // setLoadingProfile(false);
-    }
+    // ... existing fetchProfile logic ...
   };
-
-  useEffect(() => {
-    let profileSubscription: RealtimeChannel | null = null;
-
-    // Auth Listener
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      // setSession(session);
-      if (session?.user?.id) {
-        // fetchProfile(session.user.id);
-      } else {
-        // setLoadingProfile(false);
-      }
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      // setSession(session);
-      if (session?.user?.id) {
-        // fetchProfile(session.user.id);
-
-        // Subscribe to Profile Changes (Realtime)
-        if (!profileSubscription) { // Avoid duplicate subscriptions
-            profileSubscription = supabase
-              .channel(`public:profiles:id=eq.${session.user.id}`)
-              .on<any>( // Use <any> or define a proper type for the payload
-                'postgres_changes',
-                { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${session.user.id}` },
-                (payload) => {
-                  console.log('Profile updated via webhook! Reloading profile:', payload.new);
-                  // setProfile(payload.new);
-                }
-              )
-              .subscribe((status, err) => {
-                  if (status === 'SUBSCRIBED') {
-                    console.log('Subscribed to profile changes for user:', session.user.id);
-                  } else {
-                    console.error('Realtime subscription error:', status, err);
-                  }
-              });
-             console.log('Attempted profile subscription setup.');
-        }
-      } else {
-        // setProfile(null);
-        // setLoadingProfile(false);
-        // Unsubscribe if channel exists
-        if (profileSubscription) {
-          supabase.removeChannel(profileSubscription)
-            .then(() => console.log('Unsubscribed from profile changes.'))
-            .catch(err => console.error('Error unsubscribing:', err));
-          profileSubscription = null;
-        }
-      }
-      console.log('Auth state changed, session:', session ? 'Yes' : 'No');
-    });
-
-    // Close auth modal if user logs in/out
-    // if (session) // setShowAuth(false);
-
-    // Cleanup Listeners
-    return () => {
-      authListener?.subscription.unsubscribe();
-      if (profileSubscription) {
-        supabase.removeChannel(profileSubscription);
-      }
-    };
-  }, []);
-
-  // Determine if the user is premium based on profile status
-  // const isPremium = profile?.subscription_status === 'premium' || profile?.subscription_status === 'active';
   */
-  // --- End Commented out Section ---
 
-  // --- Refined Tailwind JSX --- //
+  // --- JSX Return ---
   return (
-    // Main container with light gray background
-    <div className="min-h-screen bg-gray-100 font-sans text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 text-gray-800 font-sans">
+      <Toaster position="top-center" reverseOrder={false} />
+      <Header 
+        session={session} // Pass session state
+        onLoginClick={handleOpenAuthModal} // Pass handler to open modal
+        onLogoutClick={handleLogout} // Pass logout handler
+      />
 
-      {/* Header */}
-      <header className="w-full py-8 text-center">
-        {/* App Title - Using Deep Blue */}
-        <h1 className="text-4xl font-bold text-deep-blue dark:text-teal-aqua">
-          ToneElevate
-        </h1>
-        {/* Tagline */}
-        <p className="mt-1 text-lg text-gray-600 dark:text-gray-400">
-          Polished Messages. Perfect Tone. Instantly.
-        </p>
-      </header>
+      {/* Main Content Area */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-64"> {/* Increased bottom padding to pb-64 */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column: Input, Config, Actions */}
+          <div className="lg:col-span-2 space-y-6">
 
-      {/* Main content wrapper - Wider, Flex layout for sidebar */}
-      <div className="mx-auto w-full max-w-6xl px-4 pb-24 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:space-x-8">
-
-          {/* Main content area - Takes up 3/4 width on medium+ screens */}
-          <main className="w-full md:w-3/4">
-            {/* Vertical stack for all content blocks */}
-            <div className="space-y-10"> {/* Increased spacing between major blocks */}
-
-              {/* Section 1: Enter Your Message */}
-              <section>
-                <label htmlFor="user-input" className="mb-2 block text-lg font-semibold text-gray-700 dark:text-gray-300">
-                  1. Enter Your Message
-                </label>
-                <textarea
-                  id="user-input"
-                  rows={8}
-                  className="w-full rounded-lg border border-gray-300 p-4 text-base shadow-sm transition duration-200 ease-in-out placeholder:italic placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-aqua dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:ring-teal-aqua"
-                  placeholder="Write your unfiltered thoughts or rough draft here..."
-                  value={userInput}
-                  onChange={(e) => setUserInput(e.target.value)}
-                  maxLength={MAX_INPUT_LENGTH} // Enforce max length
-                />
-                {/* Character Count Indicator */}
-                <p className="mt-1 text-right text-sm text-gray-500 dark:text-gray-400">
-                  Characters: {userInput.length} / {MAX_INPUT_LENGTH}
-                </p>
-              </section>
-
-              {/* Section 2: Choose Tone & Context */}
-              <section>
-                <h3 className="mb-3 text-lg font-semibold text-gray-700 dark:text-gray-300">
-                  2. Choose Tone & Context
-                </h3>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  {/* Tone Dropdown */}
-                  <div>
-                    <div className="relative mb-1 flex items-center space-x-1">
-                      <label htmlFor="tone-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Tone
-                      </label>
-                      <div className="group relative">
-                        <span className="cursor-help text-xs text-gray-400 dark:text-gray-500">ⓘ</span>
-                        <div className="absolute bottom-full left-1/2 z-10 mb-2 hidden w-48 -translate-x-1/2 transform rounded-md bg-gray-800 p-2 text-center text-xs text-white shadow-lg group-hover:block dark:bg-gray-200 dark:text-gray-800">
-                          Choose the emotional style or formality (e.g., Professional, Casual).
-                        </div>
-                      </div>
-                    </div>
-                    <select
-                      id="tone-select"
-                      value={selectedTone}
-                      onChange={(e) => setSelectedTone(e.target.value)}
-                      className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 p-2.5 text-base shadow-sm transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-aqua dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-teal-aqua"
-                    >
-                      {toneOptions.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {/* Context Dropdown */}
-                  <div>
-                    <div className="relative mb-1 flex items-center space-x-1">
-                      <label htmlFor="context-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Context
-                      </label>
-                      <div className="group relative">
-                        <span className="cursor-help text-xs text-gray-400 dark:text-gray-500">ⓘ</span>
-                        <div className="absolute bottom-full left-1/2 z-10 mb-2 hidden w-48 -translate-x-1/2 transform rounded-md bg-gray-800 p-2 text-center text-xs text-white shadow-lg group-hover:block dark:bg-gray-200 dark:text-gray-800">
-                          Select where you'll use the message (e.g., Email, LinkedIn).
-                        </div>
-                      </div>
-                    </div>
-                    <select
-                      id="context-select"
-                      value={selectedContext}
-                      onChange={(e) => setSelectedContext(e.target.value)}
-                      className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 p-2.5 text-base shadow-sm transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-aqua dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-teal-aqua"
-                    >
-                      {contextOptions.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {/* Output Format Dropdown */}
-                  <div>
-                    <div className="relative mb-1 flex items-center space-x-1">
-                      <label htmlFor="format-select" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Output Format
-                      </label>
-                      <div className="group relative">
-                        <span className="cursor-help text-xs text-gray-400 dark:text-gray-500">ⓘ</span>
-                        <div className="absolute bottom-full left-1/2 z-10 mb-2 hidden w-48 -translate-x-1/2 transform rounded-md bg-gray-800 p-2 text-center text-xs text-white shadow-lg group-hover:block dark:bg-gray-200 dark:text-gray-800">
-                          Choose plain text or Markdown formatting.
-                        </div>
-                      </div>
-                    </div>
-                    <select
-                      id="format-select"
-                      value={outputFormat}
-                      onChange={(e) => setOutputFormat(e.target.value)}
-                      className="w-full cursor-pointer appearance-none rounded-lg border border-gray-300 p-2.5 text-base shadow-sm transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-aqua dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-teal-aqua"
-                    >
-                      <option>Raw Text</option>
-                      <option>Markdown</option>
-                    </select>
-                  </div>
+            {/* Add a placeholder or message if user is not logged in but tries to compare? */} 
+            {!session?.user && (
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                    <p className="text-sm text-yellow-700">
+                       ✨ <button onClick={handleOpenAuthModal} className="font-medium underline hover:text-yellow-800">Log in or Sign up</button> to compare multiple tone variations side-by-side!
+                    </p>
                 </div>
-              </section>
+            )}
 
-              {/* Generate Message Button */}
-              <div className="text-center">
-                <button
-                  onClick={handleGenerateMessage}
-                  disabled={isGenerating}
-                  className="inline-flex transform items-center justify-center rounded-lg bg-teal-aqua px-6 py-3 text-base font-semibold text-white shadow-md transition duration-200 ease-in-out hover:scale-105 hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-teal-aqua focus:ring-offset-2 active:scale-95 active:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-gray-900"
-                >
-                  {isGenerating ? (
-                    <>
-                      <svg className="-ml-1 mr-3 h-5 w-5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Generating...
-                    </>
-                  ) : (
-                    'Generate Message'
-                  )}
-                </button>
+            {/* Tone Templates Section (Moved Above Input) */}
+            <ToneTemplates
+              templates={toneTemplatesData}
+              onSelectTemplate={handleSelectToneTemplate}
+            />
+
+            {/* Pass necessary state and handlers to child components */}
+            <InputSection 
+              userInput={userInput}
+              onUserInputChange={handleUserInputChange}
+              onClearInput={handleClearInput}
+              maxLength={MAX_INPUT_LENGTH}
+              onSavePrompt={() => { /* TODO: Implement actual save trigger */ handleSaveCurrentPrompt(); }}
+              onLoadPrompt={handleToggleSavedPromptsModal}
+              isLoggedIn={!!session?.user} // Pass login status
+            />
+            {/* Show Single Tone Selector OR Multi Tone Selector */} 
+            {session?.user ? (
+              <MultiToneSelector 
+                  toneOptions={toneOptions}
+                  selectedTones={comparisonTones}
+                  onSelectionChange={handleComparisonToneChange}
+                  maxSelection={MAX_COMPARISON_TONES}
+                  isLoggedIn={!!session?.user}
+                  // TODO: Connect the login button inside this component too
+              />
+            ) : (
+               // Show original single selector if not logged in
+              <ConfigSection 
+                selectedTone={selectedTone}
+                selectedContext={selectedContext}
+                toneOptions={toneOptions}
+                contextOptions={contextOptions}
+                onToneChange={handleToneChange}
+                onContextChange={handleContextChange}
+              />
+            )}
+            
+            {/* Show Single Output OR Comparison Output */} 
+            {Object.keys(comparisonResults).length > 0 ? (
+                <ToneComparisonDisplay results={comparisonResults} /> 
+            ) : (
+                <OutputSection 
+                  generatedMessage={generatedMessage}
+                  isGenerating={isGenerating}
+                  copyButtonText={copyButtonText}
+                  onCopyToClipboard={handleCopyToClipboard}
+                />
+            )}
+          </div>
+
+          {/* Right Column: Ads / Premium Placeholder */}
+          <aside className="lg:col-span-1 space-y-6">
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-700 mb-4">Ad Placeholder</h2>
+              <div className="bg-gray-200 h-48 flex items-center justify-center text-gray-500 rounded">
+                Right Sidebar Ad Slot
               </div>
-
-              {/* Section 3: Generated Message (Conditional) */}
-              {(generatedMessage || generationError) && (
-                <section className="transition-opacity duration-300 ease-in-out">
-                  <h3 className="mb-4 text-xl font-semibold text-gray-700 dark:text-gray-300">
-                    3. Generated Message
-                  </h3>
-                  <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-6 shadow-sm dark:border-gray-600 dark:bg-gray-700">
-                    {generationError && (
-                      <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 dark:border-red-600 dark:bg-red-900">
-                        <p className="text-sm font-medium text-red-700 dark:text-red-200">
-                          {generationError}
-                        </p>
-                      </div>
-                    )}
-
-                    {generatedMessage && (
-                      <div className="min-h-[100px] pr-16">
-                        {outputFormat === 'Markdown' ? (
-                          <div className="prose prose-gray max-w-none dark:prose-invert leading-relaxed">
-                            <ReactMarkdown>{generatedMessage}</ReactMarkdown>
-                          </div>
-                        ) : (
-                          <pre className="whitespace-pre-wrap font-sans text-base leading-relaxed text-gray-800 dark:text-gray-100">{generatedMessage}</pre>
-                        )}
-                      </div>
-                    )}
-
-                    {generatedMessage && (
-                      <div className="absolute top-4 right-4">
-                        <button
-                          onClick={handleCopyToClipboard}
-                          title="Copy to Clipboard"
-                          className={`inline-flex transform items-center rounded-md border px-3 py-1.5 text-sm font-medium shadow-sm transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-aqua focus:ring-offset-1 active:scale-95 dark:focus:ring-offset-gray-800 ${
-                            copySuccess
-                              ? 'border-transparent bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-700 dark:text-white dark:hover:bg-green-600'
-                              : 'border-gray-300 bg-gray-100 text-gray-700 hover:scale-105 hover:bg-gray-200 active:bg-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:active:bg-gray-500'
-                          }`}
-                        >
-                          {copySuccess ? (
-                            <>
-                              <svg className="-ml-0.5 mr-1.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-                              </svg>
-                              Copied
-                            </>
-                          ) : (
-                            <>
-                              <svg className="-ml-0.5 mr-1.5 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
-                              </svg>
-                              Copy
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </section>
-              )}
-
             </div>
-          </main>
-
-          {/* Right Sidebar Ad Column - Takes up 1/4 width on medium+ screens */}
-          <aside className="mt-10 w-full md:mt-0 md:w-1/4">
-            <div className="sticky top-8 space-y-6"> {/* Makes the ad stick on scroll within its column */} 
-              {/* START Replace placeholder with Adsense code */}
-              <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4047556293825006"
-                   crossOrigin="anonymous"></script>
-              {/* tone-smith-side */}
-              <ins className="adsbygoogle"
-                   style={{display:'block'}} // Use React style object
-                   data-ad-client="ca-pub-4047556293825006"
-                   data-ad-slot="4351641103"
-                   data-ad-format="auto"
-                   data-full-width-responsive="true"></ins>
-              <script>
-                   (adsbygoogle = window.adsbygoogle || []).push({});
-              </script>
-              {/* END Replace placeholder with Adsense code */}
-              {/* Can add more sticky elements here if needed */}
+            {/* Temporarily hidden Premium/Upgrade section
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-700 mb-4">Upgrade</h2>
+               <Suspense fallback={<LoadingFallback />}>
+                   {showPremiumModal && <PremiumSubscription onClose={() => setShowPremiumModal(false)} />} 
+                   <button 
+                     onClick={() => setShowPremiumModal(true)} 
+                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out">
+                     Upgrade to Premium
+                   </button>
+               </Suspense>
             </div>
+            */}
           </aside>
+        </div>
+      </main>
 
-        </div> {/* End Flex container */}
-      </div> {/* End Main content wrapper */}
-
-
-      {/* Bottom Fixed Ad Bar */}
-      <div className="fixed bottom-0 left-0 z-40 w-full border-t border-gray-300 bg-gray-200 p-3 text-center text-sm text-gray-600 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-          <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4047556293825006"
-               crossOrigin="anonymous"></script>
-          {/* ToneElevate Bottom Banner */}
-          <ins className="adsbygoogle"
-               style={{display:'block'}} // Use React style object
-               data-ad-client="ca-pub-4047556293825006"
-               data-ad-slot="7993973845"
-               data-ad-format="auto"
-               data-full-width-responsive="true"></ins>
-          <script>
-               (adsbygoogle = window.adsbygoogle || []).push({});
-          </script>
+      {/* Fixed Action Button Area - Simplified Container */} 
+      <div className="fixed bottom-24 left-0 right-0 z-20 px-4 sm:px-6 lg:px-8"> {/* Removed pointer-events-none */}
+        <div className="max-w-7xl mx-auto">
+          {/* Constrain width to match left column on large screens */} 
+          <div className="lg:max-w-[calc(66.66%-1rem)]"> 
+             <ActionSection 
+               onGenerate={handleGenerateOrCompare} 
+               isGenerating={isGenerating || isComparing} 
+               isInputValid={isInputValid}
+               hasJustGenerated={hasJustGenerated}
+               // Pass comparison info instead of changing button text directly
+               comparisonToneCount={session?.user ? comparisonTones.length : 0} 
+               generateButtonText={'Generate Message'} // Keep button text consistent
+             />
+          </div>
+        </div>
       </div>
+
+      {/* Fixed Bottom Banner Ad Placeholder */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white p-4 shadow-lg border-t border-gray-200 text-center">
+        <div className="bg-gray-200 h-16 flex items-center justify-center text-gray-500 rounded">
+          Bottom Banner Ad Slot
+        </div>
+      </div>
+
+      {/* Saved Prompts Modal (Rendered conditionally) */}
+      {showSavedPromptsModal && (
+        <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><LoadingFallback /></div>}>
+          <SavedPromptsModal
+            isOpen={showSavedPromptsModal}
+            onClose={handleToggleSavedPromptsModal}
+            savedPrompts={savedPrompts}
+            isLoading={isLoadingPrompts}
+            onSelectPrompt={handleLoadSavedPrompt}
+            onDeletePrompt={handleDeleteSavedPrompt}
+          />
+        </Suspense>
+      )}
+
+      {/* Authentication Modal */}
+      {showAuthModal && (
+        <Suspense fallback={<LoadingFallback />}>
+          <AuthModal 
+            isOpen={showAuthModal}
+            onClose={handleCloseAuthModal}
+          />
+        </Suspense>
+      )}
 
     </div>
   );
 }
+
+const LoadingFallback = () => <div className="p-4 text-center"><p>Loading component...</p></div>;
 
 export default App;

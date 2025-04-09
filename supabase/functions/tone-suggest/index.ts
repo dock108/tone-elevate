@@ -108,22 +108,41 @@ JSON Output:`;
         tone: string, // Expecting a valid tone ID here
         message: string,
         context: string,
-        outputFormat: string
+        outputFormat: string,
+        outputLength: string // Added outputLength parameter ('short', 'medium', 'long')
     ): Promise<string> {
-        console.log(`Generating message with Tone: ${tone}, Context: ${context}`);
+        console.log(`Generating message with Tone: ${tone}, Context: ${context}, Length: ${outputLength}`);
 
         const toneSpecificGuidanceText = getToneInstructions(tone);
         const toneSpecificGuidance = toneSpecificGuidanceText
             ? `\n\n**Recipient-Specific Tone Guidance (${tone}):** ${toneSpecificGuidanceText}`
             : '';
 
-        const systemPrompt = `You are ToneElevate, a writing assistant focused on clear, natural, and effective communication. Your goal is to help the user achieve their communication objective (intent) by rewriting or generating a message based on their input.\n\n**Core Principles:**\n1.  **Clarity & Conciseness:** Produce clean, easy-to-understand text.\n2.  **Natural Language & Anti-Cliché:** Sound human. **Aggressively avoid** jargon and tired corporate clichés. **Specifically, DO NOT use phrases like \"hope this finds you well,\" \"per my last email,\" \"circle back,\" or similar empty pleasantries**, unless the user's input explicitly demands them for a specific effect.\n3.  **Intent-Driven:** Focus squarely on achieving the user's specified goal: \`${intent}\`.\n4.  **Tone & Context Adherence:** Strictly follow the requested \`tone\` (\`${tone}\`) and adapt the message's structure (greetings, sign-offs, length, formality) to the specified \`context\` (\`${context}\`). **For Emails, get straight to the point; avoid generic opening fluff.**${toneSpecificGuidance}\n\n**Output Requirements:**\n-   **Message Only:** Output *only* the final generated message.\n-   **No Chatter:** Do *not* include introductions (e.g., \"Here's the draft:\"), explanations, or apologies.`;
+        // --- Length Guidance ---
+        let lengthGuidance = '';
+        switch (outputLength) {
+            case 'short':
+                lengthGuidance = '\n\n**Output Length:** Keep the message very concise (e.g., 1-2 sentences or key bullet points). Focus only on the most critical information.';
+                break;
+            case 'long':
+                lengthGuidance = '\n\n**Output Length:** Generate a detailed and comprehensive message. Expand on the key points, provide context, and ensure thoroughness (e.g., multiple paragraphs if appropriate).';
+                break;
+            case 'medium': // Default case
+            default:
+                lengthGuidance = '\n\n**Output Length:** Generate a message of standard, medium length (e.g., a short paragraph or a few bullet points). Balance conciseness with necessary detail.';
+                break;
+        }
 
-        const userPrompt = `Based on the user's goal ("${intent}") and their raw input below, craft a **complete and contextually suitable** message.
+        const systemPrompt = `You are ToneElevate, a writing assistant focused on clear, natural, and effective communication. Your goal is to help the user achieve their communication objective (intent) by rewriting or generating a message based on their input.\n\n**Core Principles:**\n1.  **Clarity & Conciseness:** Produce clean, easy-to-understand text.\n2.  **Natural Language & Anti-Cliché:** Sound human. **Aggressively avoid** jargon and tired corporate clichés. **Specifically, DO NOT use phrases like \"hope this finds you well,\" \"per my last email,\" \"circle back,\" or similar empty pleasantries**, unless the user's input explicitly demands them for a specific effect.\n3.  **Intent-Driven:** Focus squarely on achieving the user's specified goal: \`${intent}\`.\n4.  **Tone & Context Adherence:** Strictly follow the requested \`tone\` (\`${tone}\`) and adapt the message's structure (greetings, sign-offs, length, formality) to the specified \`context\` (\`${context}\`). **For Emails, get straight to the point; avoid generic opening fluff.**${toneSpecificGuidance}${lengthGuidance}
+
+**Output Requirements:**\n-   **Message Only:** Output *only* the final generated message.\n-   **No Chatter:** Do *not* include introductions (e.g., \"Here's the draft:\"), explanations, or apologies.`;
+
+        const userPrompt = `Based on the user's goal ("${intent}") and their raw input below, craft a **complete and contextually suitable** message, adhering to the requested output length.
 
 Tone: ${tone}
 Context: ${context}
 Output Format: ${outputFormat}
+Desired Length: ${outputLength}
 
 User Input:
 """
@@ -197,7 +216,7 @@ Generated Message:`; // Ensure prompt clearly asks for the message
         }
 
         // 3. Parse and Validate Request Body
-        const { userInput, context, outputFormat } = await req.json();
+        const { userInput, context, outputFormat, outputLength = 'medium' } = await req.json();
 
         // Validate required fields
         if (!userInput || !context || !outputFormat) {
@@ -225,7 +244,13 @@ Generated Message:`; // Ensure prompt clearly asks for the message
                 status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } // 413 Payload Too Large
             });
         }
-        console.log(`Processing request: Context=${context}, Format=${outputFormat}, InputLength=${userInput.length}, User=${userId ?? 'anonymous'}`);
+        // Validate outputLength
+        if (!['short', 'medium', 'long'].includes(outputLength)) {
+            return new Response(JSON.stringify({ error: `Invalid outputLength: ${outputLength}. Must be one of: short, medium, long` }), {
+                status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+        console.log(`Processing request: Context=${context}, Format=${outputFormat}, Length=${outputLength}, InputLength=${userInput.length}, User=${userId ?? 'anonymous'}`);
 
         // --- New Step: Parse User Input ---
         const { intent, tone, message } = await parseUserInput(userInput);
@@ -288,7 +313,8 @@ Generated Message:`; // Ensure prompt clearly asks for the message
             tone, // Pass the validated tone ID
             message,
             context,
-            outputFormat
+            outputFormat,
+            outputLength // Pass validated outputLength
         );
 
         // 6. Update Usage Count (if needed)

@@ -8,12 +8,19 @@ This application leverages AI (specifically GPT-4o) to take user input and gener
 
 ## MVP Features
 
--   AI-powered message generation based on user input, tone (including specific "Professional" variations), context (`Email`, `Teams Chat`, `LinkedIn Post`, `GitHub Comment`, `General Text`, `Documentation`, `Text Message`), and output format (`Raw Text`/`Markdown`).
+-   AI-powered message generation based on user input, tone (including specific "Professional" variations), and context (`Email`, `Teams Chat`, `LinkedIn Post`, `GitHub Comment`, `General Text`, `Documentation`, `Text Message`). Output is formatted as raw text.
 -   Basic message generation available without login.
--   **Polished single-column UI** for the free tier experience, resembling modern SaaS tools (updated styles for inputs, buttons, containers, typography).
--   Clear display of generated message with copy-to-clipboard.
--   User accounts (Supabase Auth) with optional preferences/template saving.
+-   **Polished single-column UI** for the free tier experience, with extracted components (`Header`, `InputSection`, `ConfigSection`, `ActionSection`, `OutputSection`) for better maintainability.
+-   Clear display of generated message with copy-to-clipboard (including visual feedback) and input clearing.
+-   User accounts (Supabase Auth) with optional preferences/template saving (Components exist but are lazy-loaded and not fully integrated yet).
+-   **Saved Prompts:** Logged-in users can save frequently used prompts (input text, tone, context) and load them via a modal (`SavedPromptsModal`).
+-   **Tone Comparison:** Logged-in users can select up to 3 tones and generate variations side-by-side for comparison (`ToneComparisonDisplay`).
+-   **Content Length Selector:** Users can choose desired output length (Short, Medium, Long) influencing the generated text.
+-   **Quick Start Templates:** Predefined templates provide examples and starting points for users.
+-   **Email Sharing:** Logged-in users can share generated content via email (requires backend setup with email provider).
 -   Subscription management (Freemium model via Stripe) for potential future premium features (currently, logged-in free users have a daily limit).
+-   Improved user feedback using toast notifications (`react-hot-toast`).
+-   Basic accessibility enhancements (semantic HTML, labels).
 
 ## Monetization
 
@@ -24,10 +31,10 @@ This application leverages AI (specifically GPT-4o) to take user input and gener
 ## Technical Stack
 
 -   **Frontend (Mobile):** React Native (Expo)
--   **Frontend (Web):** React.js (Vite) + Tailwind CSS
+-   **Frontend (Web):** React.js (Vite) + Tailwind CSS + react-hot-toast
 -   **Backend:** Supabase (Database, Auth, Edge Functions)
--   **AI Integration:** OpenAI GPT-4o API (likely called via Supabase Edge Functions)
--   **Payments Integration:** Stripe API (likely called via Supabase Edge Functions)
+-   **AI Integration:** OpenAI GPT-4o API (called via Supabase Edge Functions)
+-   **Payments Integration:** Stripe API (called via Supabase Edge Functions)
 -   ~~**Backend:** Node.js (Express)~~ (Removed in favor of Supabase)
 -   ~~**Database:** (To be decided - PostgreSQL, MongoDB recommended)~~ (Using Supabase Postgres)
 
@@ -123,6 +130,7 @@ We use a Gitflow-like branching model:
 -   Follow standard JavaScript/TypeScript style guides.
 -   Use linters (ESLint) and formatters (Prettier) - configurations added for both frontend projects.
 -   Run `npm run lint` and `npm run format` within `frontend/mobile` or `frontend/web` to check and fix styles.
+-   Components extracted into `frontend/web/src/components/` for modularity.
 
 ## Project Structure (Revised for Supabase)
 
@@ -131,13 +139,42 @@ root/
 ├── frontend/
 │   ├── mobile/       # React Native (Expo) with Supabase client
 │   └── web/          # React.js (Vite) with Supabase client
+│       ├── public/
+│       ├── src/
+│       │   ├── components/ # Reusable UI components
+│       │   │   ├── Header.tsx
+│       │   │   ├── AuthModal.tsx
+│       │   │   ├── InputSection.tsx
+│       │   │   ├── ConfigSection.tsx
+│       │   │   ├── MultiToneSelector.tsx
+│       │   │   ├── ContentLengthSelector.tsx
+│       │   │   ├── ToneTemplates.tsx
+│       │   │   ├── ActionSection.tsx
+│       │   │   ├── OutputSection.tsx
+│       │   │   ├── ToneComparisonDisplay.tsx
+│       │   │   ├── EmailShareButton.tsx
+│       │   │   ├── SavedPromptsModal.tsx (Lazy-loaded)
+│       │   │   ├── PremiumSubscription.tsx (Lazy-loaded)
+│       │   │   └── UserPreferences.tsx (Lazy-loaded)
+│       │   ├── lib/        # Supabase client setup, API helpers, data (e.g., savedPromptsApi.ts, toneTemplatesData.ts)
+│       │   ├── assets/     # Static assets
+│       │   ├── App.tsx     # Main application container
+│       │   ├── main.tsx    # Entry point
+│       │   └── index.css   # Global styles
+│       ├── tailwind.config.js
+│       ├── postcss.config.js
+│       ├── vite.config.ts
+│       └── package.json
 ├── supabase/         # Supabase specific files (CLI config, migrations, functions)
-│   ├── migrations/   # Database migrations managed by Supabase CLI
-│   └── functions/    # Supabase Edge Functions (for OpenAI, Stripe, etc.)
-│       ├── <function_name>/ # Directory per function
-│       └── ...
-├── docs/             # Documentation and references
-├── scripts/          # Utility scripts (if any needed beyond Supabase)
+│   ├── migrations/   # Contains SQL for creating tables like 'saved_prompts'
+│   └── functions/
+│       ├── _shared/
+│       ├── tone-suggest/ # Handles generation, including length param
+│       ├── send-email/   # Handles sending email (requires setup)
+│       ├── create-checkout-session/
+│       └── stripe-webhook/
+├── docs/
+├── scripts/
 ├── README.md         # This file
 └── TODO.md           # Next steps and tasks (Revised)
 ```

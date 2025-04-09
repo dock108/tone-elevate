@@ -23,6 +23,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Frontend (Web):** Fade-in transition for the generated message section.
 - **Backend (Edge Function `tone-suggest`):** Recipient-specific tone variations for "Professional" (C-Suite, Director, Boss, Peer Group, Subordinates, Interns) with tailored AI instructions.
 - **Backend:** Centralized tone registry (`supabase/functions/_shared/tones.ts`) defining tone IDs, labels, and specific instructions.
+- **Frontend (Web):** Extracted UI sections (`Header`, `InputSection`, `ConfigSection`, `ActionSection`, `OutputSection`) from monolithic `App.tsx` into separate components.
+- **Frontend (Web):** Implemented input validation (disable button, inline message) in `ActionSection`.
+- **Frontend (Web):** Added `react-hot-toast` for user feedback (loading, success, error notifications).
+- **Frontend (Web):** Added state to Copy button for temporary "Copied ✓" feedback in `OutputSection`.
+- **Frontend (Web):** Added state (`hasJustGenerated`) to prevent duplicate submissions by briefly disabling the Generate button.
+- **Frontend (Web):** Added Clear Input button to `InputSection`.
+- **Frontend (Web):** Set up lazy loading with `React.lazy` and `Suspense` for `PremiumSubscription` and `UserPreferences` components in `App.tsx`.
+- **Frontend (Web):** Added semantic HTML elements (`<main>`, `<section>`) and screen-reader-only headings in `App.tsx` for improved accessibility.
+- **Database (Supabase):** Created `saved_prompts` table with columns (`id`, `user_id`, `created_at`, `label`, `prompt_text`, `tone_id`, `context`) and appropriate foreign key constraints (`user_id` -> `auth.users.id`).
+- **Database (Supabase):** Implemented Row-Level Security (RLS) policies on `saved_prompts` table to ensure users can only access/modify their own prompts (SELECT, INSERT, DELETE).
+- **Frontend (Web):** Created Supabase API helper functions (`fetchSavedPrompts`, `saveNewPrompt`, `deletePrompt`) in `src/lib/savedPromptsApi.ts` for interacting with the `saved_prompts` table.
+- **Frontend (Web):** Integrated Saved Prompts state management (`savedPrompts`, `isLoadingPrompts`, `showSavedPromptsModal`) and handlers (`handleFetchSavedPrompts`, `handleSaveCurrentPrompt`, etc.) into `App.tsx`.
+- **Frontend (Web):** Added conditional "Save Prompt" and "Load Prompts" buttons to `InputSection.tsx`, visible only to logged-in users.
+- **Frontend (Web):** Created `SavedPromptsModal.tsx` component (lazy-loaded) to display, select, and delete saved prompts.
+- **Frontend (Web):** Updated `App.tsx` to fetch saved prompts on user session change and pass relevant state/handlers to `InputSection` and `SavedPromptsModal`.
+- **Frontend (Web):** Implemented basic Auth UI (`AuthModal.tsx` using Supabase UI) and integrated visibility toggling via `Header.tsx`.
+- **Frontend (Web):** Added `MultiToneSelector.tsx` component for logged-in users to select multiple tones for comparison.
+- **Frontend (Web):** Added `ToneComparisonDisplay.tsx` component to display multiple generated variations side-by-side.
+- **Backend (Edge Function `tone-suggest`):** Updated function to accept and utilize `outputLength` parameter in prompt generation.
+- **Frontend (Web):** Added `ContentLengthSelector.tsx` component to allow users to select desired output length (Short, Medium, Long).
+- **Backend (Edge Function):** Outlined `send-email` Edge Function structure (requires external email provider like Resend/SendGrid).
+- **Frontend (Web):** Created `EmailShareButton.tsx` component with modal for logged-in users to send generated content via email.
 
 ### Changed
 - **Project:** Migrated backend from Node.js/Express/Prisma to Supabase (Database, Auth, Edge Functions).
@@ -49,6 +71,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backend (Edge Function `tone-suggest`):** Increased `MAX_INPUT_LENGTH` to 8192 characters.
 - **Frontend (Web):** Updated tone dropdown in `App.tsx` to use structured `id`/`label` options and list professional tones hierarchically.
 - **Frontend (Web):** Set default selected tone to "Professional - Boss.
+- **Frontend (Web):** Refactored `App.tsx` to act as a container component passing state and handlers to child components.
+- **Frontend (Web):** Removed Markdown output format option and related dependencies (`react-markdown`, `react-syntax-highlighter`). Application now defaults to and only uses "Raw Text" output.
+- **Frontend (Web):** Replaced state-based error/success display (`generationError`, `copySuccess`) with `react-hot-toast` notifications.
+- **Frontend (Web):** Changed Raw Text output element from `<pre>` to `<div>` in `OutputSection` for better font consistency, while retaining `whitespace-pre-wrap`.
+- **Frontend (Web):** Updated API call in `App.tsx` to send `{ userInput, context, outputFormat }` in the body, matching `tone-suggest` function expectations.
+- **Frontend (Web):** Simplified `ConfigSection` by removing the Output Format dropdown.
+- **Frontend (Web):** Updated `InputSection.tsx` props interface to include `isLoggedIn`, `onSavePrompt`, `onLoadPrompt`.
+- **Frontend (Web):** Updated `App.tsx` to manage authentication state (`session`) directly for use with Saved Prompts feature.
+- **Frontend (Web):** Updated `App.tsx` generation handler (`handleGenerateOrCompare`) to support multiple API calls (`Promise.all`) for tone comparison.
+- **Frontend (Web):** Updated `App.tsx` to conditionally render single output (`OutputSection`) or comparison output (`ToneComparisonDisplay`).
+- **Frontend (Web):** Updated `App.tsx` to conditionally render `MultiToneSelector` (logged-in) or `ConfigSection` (logged-out).
+- **Frontend (Web):** Updated `App.tsx` to integrate `selectedLength` state and pass it to the generation handler.
+- **Frontend (Web):** Updated `App.tsx` to integrate `handleSendEmail` handler and pass necessary props to `OutputSection`.
+- **Frontend (Web):** Updated `OutputSection.tsx` to conditionally render `EmailShareButton` for logged-in users.
+- **Frontend (Web):** Updated `Header.tsx` to display user email/logout button or login/signup button based on session state.
+- **UI Layout (Web):** Moved `ToneTemplates` component above `InputSection` and implemented horizontal scrolling.
+- **UI Layout (Web):** Moved `ActionSection` to a fixed position at the bottom of the viewport (above ad banner).
+- **UI Layout (Web):** Increased bottom padding on the main content area (`pb-64`) for better scroll visibility.
+- **UI Layout (Web):** Updated `ActionSection` to display comparison count info separately from the main button text.
 
 ### Fixed
 - **Backend (Edge Function `tone-suggest`):** Corrected syntax error in `userPrompt` template literal.
@@ -60,13 +101,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Frontend (Web):** Ensured Tailwind CSS styles (including responsive variants) are correctly applied.
 - **Frontend (Web):** Added padding to generated message content area to prevent text overlapping the copy button.
 - **Backend (Edge Function `tone-suggest`):** Corrected parsing error in `_shared/tones.ts` caused by escaped newline characters during file creation.
+- **Frontend (Web):** Corrected API request body sent to `tone-suggest` Edge Function to resolve `non-2xx` errors.
+- **Frontend (Web):** Fixed `react-markdown` error by removing `className` prop and applying styles to a wrapper element (before Markdown support was removed).
+- **Frontend (Web):** Added `overflow-x-auto` to output display (`OutputSection`) to handle long unbreakable strings without breaking page layout.
+- **Frontend (Web):** Added missing component imports in `App.tsx` after refactoring, resolving `ReferenceError`.
+- **Frontend (Web):** Corrected Supabase auth listener unsubscribe call in `App.tsx` (`authListener?.subscription?.unsubscribe()`).
 
 ### Removed
 - **Backend:** Removed `backend/` directory and all Node.js/Express/Prisma code.
 - **Backend:** Removed backend-specific entries from `.env.example` (now handled by Supabase secrets).
 - **Frontend (Web):** Removed floating tooltip feedback for copy-to-clipboard (using button state only).
+- **Frontend (Web):** Removed `outputFormat` state and related handler from `App.tsx`.
+- **Frontend (Web):** Removed `react-markdown` and `react-syntax-highlighter` dependencies (pending `npm uninstall`).
+- **Frontend (Web):** Removed `generationError` and `copySuccess` state variables from `App.tsx`.
 
-## [0.4.0] - YYYY-MM-DD <PLACEHOLDER_DATE>
+## [0.4.0] - 2025-04-09
 
 ### Changed
 - **Core Functionality:** Refactored the core AI feature from providing "suggestions" to generating complete messages.
