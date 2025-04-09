@@ -1,6 +1,6 @@
-# ToneSmith
+# ToneElevate
 
-ToneSmith is an AI-powered communication assistant designed to help users generate well-toned messages suitable for various communication contexts.
+ToneElevate is an AI-powered communication assistant designed to help users generate well-toned messages suitable for various communication contexts.
 
 ## Overview
 

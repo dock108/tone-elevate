@@ -1,6 +1,6 @@
-# ToneSmith - Next Steps (MVP) - Supabase Backend
+# ToneElevate - Next Steps (MVP) - Supabase Backend
 
-This document outlines the initial tasks required to build the MVP for ToneSmith using Supabase.
+This document outlines the initial tasks required to build the MVP for ToneElevate using Supabase.
 
 ## Phase 1: Supabase Setup & Frontend Initialization [✅ COMPLETE]
 

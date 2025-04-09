@@ -257,7 +257,7 @@ function App() {
       <header className="w-full py-8 text-center">
         {/* App Title - Using Deep Blue */}
         <h1 className="text-4xl font-bold text-deep-blue dark:text-teal-aqua">
-          ToneSmith
+          ToneElevate
         </h1>
         {/* Tagline */}
         <p className="mt-1 text-lg text-gray-600 dark:text-gray-400">
@@ -491,7 +491,7 @@ function App() {
       <div className="fixed bottom-0 left-0 z-40 w-full border-t border-gray-300 bg-gray-200 p-3 text-center text-sm text-gray-600 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
           <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4047556293825006"
                crossOrigin="anonymous"></script>
-          {/* ToneSmith Bottom Banner */}
+          {/* ToneElevate Bottom Banner */}
           <ins className="adsbygoogle"
                style={{display:'block'}} // Use React style object
                data-ad-client="ca-pub-4047556293825006"

@@ -131,7 +131,7 @@ export default function App() {
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>ToneSmith</Text>
+          <Text style={styles.title}>ToneElevate</Text>
           <Text style={styles.tagline}>Polished Messages. Perfect Tone. Instantly.</Text>
         </View>
 
