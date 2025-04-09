@@ -500,33 +500,15 @@ function App() {
             )}
           </div>
 
-          {/* Right Column: Ads / Premium Placeholder */}
+          {/* Right Column: Empty for Auto Ads */}
           <aside className="lg:col-span-1 space-y-6">
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-700 mb-4">Ad Placeholder</h2>
-              <div className="bg-gray-200 h-48 flex items-center justify-center text-gray-500 rounded">
-                Right Sidebar Ad Slot
-              </div>
-            </div>
-            {/* Temporarily hidden Premium/Upgrade section
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-700 mb-4">Upgrade</h2>
-               <Suspense fallback={<LoadingFallback />}>
-                   {showPremiumModal && <PremiumSubscription onClose={() => setShowPremiumModal(false)} />} 
-                   <button 
-                     onClick={() => setShowPremiumModal(true)} 
-                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md transition duration-150 ease-in-out">
-                     Upgrade to Premium
-                   </button>
-               </Suspense>
-            </div>
-            */}
+            {/* Google Auto Ads will automatically place ads here */}
           </aside>
         </div>
       </main>
 
       {/* Fixed Action Button Area - Simplified Container */} 
-      <div className="fixed bottom-24 left-0 right-0 z-20 px-4 sm:px-6 lg:px-8"> {/* Removed pointer-events-none */}
+      <div className="fixed bottom-0 left-0 right-0 z-20 px-4 sm:px-6 lg:px-8 pb-4"> {/* Adjusted bottom padding */}
         <div className="max-w-7xl mx-auto">
           {/* Constrain width to match left column on large screens */} 
           <div className="lg:max-w-[calc(66.66%-1rem)]"> 
@@ -535,18 +517,10 @@ function App() {
                isGenerating={isGenerating || isComparing} 
                isInputValid={isInputValid}
                hasJustGenerated={hasJustGenerated}
-               // Pass comparison info instead of changing button text directly
                comparisonToneCount={session?.user ? comparisonTones.length : 0} 
-               generateButtonText={'Generate Message'} // Keep button text consistent
+               generateButtonText={'Generate Message'}
              />
           </div>
-        </div>
-      </div>
-
-      {/* Fixed Bottom Banner Ad Placeholder */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white p-4 shadow-lg border-t border-gray-200 text-center">
-        <div className="bg-gray-200 h-16 flex items-center justify-center text-gray-500 rounded">
-          Bottom Banner Ad Slot
         </div>
       </div>
 
