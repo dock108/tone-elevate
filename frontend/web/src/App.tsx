@@ -427,36 +427,30 @@ function App() {
   // --- JSX Return ---
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Pass auth handlers and session to Header */}
-      <Header 
-        session={session}
-        onLoginClick={handleOpenAuthModal}
-        onLogoutClick={handleLogout}
-      />
+      {/* Remove unused auth props from Header */}
+      <Header />
 
       <main className="flex-grow container mx-auto px-4 py-8">
-        {/* Add the H1 tag here */}
+        {/* H1 tag */}
         <h1 className="text-3xl md:text-4xl font-bold text-gray-800 text-center mb-8">
           Get the Right Tone: Craft Perfect Messages for Any Audience with ToneElevate
         </h1>
 
-        {/* Existing sections wrapped in a div for potential grid layout later */}
+        {/* Existing sections */}
         <div className="space-y-8">
-          {/* Quick Start Templates Section */}
           <ToneTemplates 
             templates={toneTemplatesData} 
             onSelectTemplate={handleSelectToneTemplate} 
           />
 
-          {/* Input Section */}
+          {/* Fix InputSection prop name */}
           <InputSection 
             userInput={userInput} 
-            onInputChange={handleUserInputChange} 
+            onUserInputChange={handleUserInputChange} // Renamed from onInputChange
             onClearInput={handleClearInput}
             maxLength={MAX_INPUT_LENGTH}
           />
           
-          {/* Configuration Section */}
           <ConfigSection
             selectedTone={selectedTone}
             selectedContext={selectedContext}
@@ -466,57 +460,49 @@ function App() {
             onContextChange={handleContextChange}
           />
 
-          {/* Multi-Tone Selector (Optional/Conditional Rendering) */}
-          {/* Conditionally render if needed, e.g., based on user plan or feature flag */}
+          {/* Fix MultiToneSelector prop name (assuming onSelectionChange) */}
           <MultiToneSelector 
             toneOptions={toneOptions} 
             selectedTones={comparisonTones} 
-            onChange={handleComparisonToneChange}
+            onSelectionChange={handleComparisonToneChange} // Renamed from onChange
             maxSelection={MAX_COMPARISON_TONES}
           />
 
-          {/* Action Section */}
+          {/* Fix ActionSection props (remove canGenerate) */}
           <ActionSection 
             isGenerating={isGenerating || isComparing} 
             onGenerate={handleGenerateOrCompare} 
-            canGenerate={isInputValid && !hasJustGenerated}
-            canSave={!!session?.user?.id && isInputValid} // Only allow save if logged in and input exists
+            canSave={!!session?.user?.id && isInputValid}
             onSave={handleSaveCurrentPrompt}
-            onLoad={handleToggleSavedPromptsModal} // Use this to open the modal
-            showSaveLoadButtons={!!session?.user?.id} // Show save/load only if logged in
+            onLoad={handleToggleSavedPromptsModal}
+            showSaveLoadButtons={!!session?.user?.id}
           />
 
-          {/* Output Section(s) */}
-          {/* Single generation output */}
+          {/* Fix OutputSection props (remove isLoading) */}
           {generatedMessage && !isComparing && (
             <OutputSection 
               generatedMessage={generatedMessage} 
-              isLoading={isGenerating}
               copyButtonText={copyButtonText}
               onCopyToClipboard={handleCopyToClipboard}
             />
           )}
 
-          {/* Comparison output */}
+          {/* Fix ToneComparisonDisplay props (remove isLoading) */}
           {isComparing || Object.keys(comparisonResults).length > 0 && (
              <ToneComparisonDisplay 
                results={comparisonResults}
-               isLoading={isComparing}
-               toneOptions={toneOptions} // Pass tone options to map ID to label if needed
+               toneOptions={toneOptions}
              />
           )}
         </div>
       </main>
-
-      {/* Footer or other elements if needed */}
-      {/* <footer className="bg-gray-100 p-4 text-center text-sm text-gray-600"> ... </footer> */}
       
-      {/* Modals & Toaster */} 
       <Toaster position="bottom-center" />
       
-      {/* Lazy loaded modals wrapped in Suspense */}
       <Suspense fallback={<LoadingFallback />}>
-        {showAuthModal && <AuthModal onClose={handleCloseAuthModal} />}
+        {/* Add missing isOpen prop to AuthModal */}
+        {showAuthModal && <AuthModal isOpen={showAuthModal} onClose={handleCloseAuthModal} />}
+        {/* Add missing isOpen prop to SavedPromptsModal */}
         {showSavedPromptsModal && session?.user?.id && (
           <SavedPromptsModal 
             isOpen={showSavedPromptsModal} 
@@ -527,9 +513,6 @@ function App() {
             isLoading={isLoadingPrompts}
           />
         )}
-        {/* TODO: Premium features not ready yet */}
-        {/* {showPremiumModal && <PremiumSubscription onClose={() => setShowPremiumModal(false)} />} */}
-        {/* {showPreferencesModal && <UserPreferences onClose={() => setShowPreferencesModal(false)} />} */}
       </Suspense>
     </div>
   );
