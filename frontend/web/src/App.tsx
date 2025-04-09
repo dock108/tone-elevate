@@ -429,98 +429,86 @@ function App() {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 text-gray-800 font-sans">
       <Toaster position="top-center" reverseOrder={false} />
       <Header 
-        session={session} // Pass session state
-        onLoginClick={handleOpenAuthModal} // Pass handler to open modal
-        onLogoutClick={handleLogout} // Pass logout handler
+        session={session}
+        onLoginClick={handleOpenAuthModal}
+        onLogoutClick={handleLogout}
       />
 
       {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-64"> {/* Increased bottom padding to pb-64 */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Input, Config, Actions */}
-          <div className="lg:col-span-2 space-y-6">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-64"> {/* Changed from max-w-7xl and removed grid */}
+        {/* Left Column: Input, Config, Actions */}
+        <div className="space-y-6 max-w-4xl mx-auto"> {/* Added mx-auto and max-w-4xl for centered content */}
+          {/* Add a placeholder or message if user is not logged in but tries to compare? */} 
+          {!session?.user && (
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                  <p className="text-sm text-yellow-700">
+                     ✨ <button onClick={handleOpenAuthModal} className="font-medium underline hover:text-yellow-800">Log in or Sign up</button> to compare multiple tone variations side-by-side!
+                  </p>
+              </div>
+          )}
 
-            {/* Add a placeholder or message if user is not logged in but tries to compare? */} 
-            {!session?.user && (
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                    <p className="text-sm text-yellow-700">
-                       ✨ <button onClick={handleOpenAuthModal} className="font-medium underline hover:text-yellow-800">Log in or Sign up</button> to compare multiple tone variations side-by-side!
-                    </p>
-                </div>
-            )}
+          {/* Tone Templates Section (Moved Above Input) */}
+          <ToneTemplates
+            templates={toneTemplatesData}
+            onSelectTemplate={handleSelectToneTemplate}
+          />
 
-            {/* Tone Templates Section (Moved Above Input) */}
-            <ToneTemplates
-              templates={toneTemplatesData}
-              onSelectTemplate={handleSelectToneTemplate}
-            />
-
-            {/* Pass necessary state and handlers to child components */}
-            <InputSection 
-              userInput={userInput}
-              onUserInputChange={handleUserInputChange}
-              onClearInput={handleClearInput}
-              maxLength={MAX_INPUT_LENGTH}
-              onSavePrompt={() => { /* TODO: Implement actual save trigger */ handleSaveCurrentPrompt(); }}
-              onLoadPrompt={handleToggleSavedPromptsModal}
-              isLoggedIn={!!session?.user} // Pass login status
-            />
-            {/* Show Single Tone Selector OR Multi Tone Selector */} 
-            {session?.user ? (
-              <MultiToneSelector 
-                  toneOptions={toneOptions}
-                  selectedTones={comparisonTones}
-                  onSelectionChange={handleComparisonToneChange}
-                  maxSelection={MAX_COMPARISON_TONES}
-                  isLoggedIn={!!session?.user}
-                  // TODO: Connect the login button inside this component too
-              />
-            ) : (
-               // Show original single selector if not logged in
-              <ConfigSection 
-                selectedTone={selectedTone}
-                selectedContext={selectedContext}
+          {/* Pass necessary state and handlers to child components */}
+          <InputSection 
+            userInput={userInput}
+            onUserInputChange={handleUserInputChange}
+            onClearInput={handleClearInput}
+            maxLength={MAX_INPUT_LENGTH}
+            onSavePrompt={() => handleSaveCurrentPrompt()}
+            onLoadPrompt={handleToggleSavedPromptsModal}
+            isLoggedIn={!!session?.user}
+          />
+          {/* Show Single Tone Selector OR Multi Tone Selector */} 
+          {session?.user ? (
+            <MultiToneSelector 
                 toneOptions={toneOptions}
-                contextOptions={contextOptions}
-                onToneChange={handleToneChange}
-                onContextChange={handleContextChange}
+                selectedTones={comparisonTones}
+                onSelectionChange={handleComparisonToneChange}
+                maxSelection={MAX_COMPARISON_TONES}
+                isLoggedIn={!!session?.user}
+            />
+          ) : (
+             // Show original single selector if not logged in
+            <ConfigSection 
+              selectedTone={selectedTone}
+              selectedContext={selectedContext}
+              toneOptions={toneOptions}
+              contextOptions={contextOptions}
+              onToneChange={handleToneChange}
+              onContextChange={handleContextChange}
+            />
+          )}
+          
+          {/* Show Single Output OR Comparison Output */} 
+          {Object.keys(comparisonResults).length > 0 ? (
+              <ToneComparisonDisplay results={comparisonResults} /> 
+          ) : (
+              <OutputSection 
+                generatedMessage={generatedMessage}
+                isGenerating={isGenerating}
+                copyButtonText={copyButtonText}
+                onCopyToClipboard={handleCopyToClipboard}
               />
-            )}
-            
-            {/* Show Single Output OR Comparison Output */} 
-            {Object.keys(comparisonResults).length > 0 ? (
-                <ToneComparisonDisplay results={comparisonResults} /> 
-            ) : (
-                <OutputSection 
-                  generatedMessage={generatedMessage}
-                  isGenerating={isGenerating}
-                  copyButtonText={copyButtonText}
-                  onCopyToClipboard={handleCopyToClipboard}
-                />
-            )}
-          </div>
-
-          {/* Right Column: Empty for Auto Ads */}
-          <aside className="lg:col-span-1 space-y-6">
-            {/* Google Auto Ads will automatically place ads here */}
-          </aside>
+          )}
         </div>
       </main>
 
-      {/* Fixed Action Button Area - Simplified Container */} 
-      <div className="fixed bottom-0 left-0 right-0 z-20 px-4 sm:px-6 lg:px-8 pb-4"> {/* Adjusted bottom padding */}
-        <div className="max-w-7xl mx-auto">
-          {/* Constrain width to match left column on large screens */} 
-          <div className="lg:max-w-[calc(66.66%-1rem)]"> 
-             <ActionSection 
-               onGenerate={handleGenerateOrCompare} 
-               isGenerating={isGenerating || isComparing} 
-               isInputValid={isInputValid}
-               hasJustGenerated={hasJustGenerated}
-               comparisonToneCount={session?.user ? comparisonTones.length : 0} 
-               generateButtonText={'Generate Message'}
-             />
-          </div>
+      {/* Fixed Action Button Area - Centered Container */} 
+      <div className="fixed bottom-0 left-0 right-0 z-20 px-4 sm:px-6 lg:px-8 pb-4">
+        <div className="max-w-4xl mx-auto"> {/* Changed from max-w-7xl to max-w-4xl */}
+          <ActionSection 
+            onGenerate={handleGenerateOrCompare} 
+            isGenerating={isGenerating || isComparing} 
+            isInputValid={isInputValid}
+            hasJustGenerated={hasJustGenerated}
+            comparisonToneCount={session?.user ? comparisonTones.length : 0} 
+            generateButtonText={'Generate Message'}
+          />
         </div>
       </div>
 
