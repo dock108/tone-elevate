@@ -11,7 +11,6 @@
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,md}\""
   },
   "dependencies": {
-    "@clerk/clerk-react": "^5.26.2",
     "@headlessui/react": "^2.2.1",
     "@radix-ui/react-avatar": "^1.1.4",
     "@radix-ui/react-dropdown-menu": "^2.1.7",
