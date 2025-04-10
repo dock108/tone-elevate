@@ -60,7 +60,7 @@ const SavedPromptsModal: React.FC<SavedPromptsModalProps> = ({
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <p className="font-medium text-gray-800">
-                        {prompt.label || `Prompt created ${new Date(prompt.created_at).toLocaleDateString()}`}
+                        {prompt.name || `Prompt created ${new Date(prompt.created_at).toLocaleDateString()}`}
                       </p>
                       <p className="text-sm text-gray-600 truncate" title={prompt.prompt_text}>
                         {prompt.prompt_text} 

@@ -8,6 +8,7 @@ interface HeaderProps {
   onLoginClick: () => void; // Handler to open auth modal
   onLogoutClick: () => void; // Handler for logout action
   onUpgradeClick: () => void; // Added handler for upgrade action
+  isUpgrading?: boolean; // Optional prop for upgrade button loading state
 }
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -15,7 +16,8 @@ const Header: React.FC<HeaderProps> = ({
   isPremium, // Destructure isPremium
   onLoginClick, 
   onLogoutClick, 
-  onUpgradeClick // Destructure onUpgradeClick
+  onUpgradeClick, // Destructure onUpgradeClick
+  isUpgrading = false // Default to false if not provided
 }) => {
   return (
     <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-10 shadow-sm">
@@ -37,9 +39,10 @@ const Header: React.FC<HeaderProps> = ({
             ) : (
               <button 
                 onClick={onUpgradeClick}
-                className="px-3 py-1 text-xs font-medium bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:from-purple-600 hover:to-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition duration-150 ease-in-out shadow-sm"
+                disabled={isUpgrading}
+                className={`px-3 py-1 text-xs font-medium bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:from-purple-600 hover:to-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition duration-150 ease-in-out shadow-sm ${isUpgrading ? 'opacity-75 cursor-not-allowed' : ''}`}
               >
-                Upgrade
+                {isUpgrading ? 'Processing...' : 'Upgrade'}
               </button>
             )}
             <button 

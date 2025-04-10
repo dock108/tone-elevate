@@ -239,7 +239,7 @@ function App() {
       console.error('Logout error:', e);
       // Force local logout even if API call failed
       setSession(null);
-      toast.warning('Forced logout - session may have already expired');
+      toast.error('Forced logout - session may have already expired');
     }
   };
 
@@ -642,6 +642,7 @@ function App() {
         onLoginClick={handleOpenAuthModal}
         onLogoutClick={handleLogout}
         onUpgradeClick={handleUpgradeClick}
+        isUpgrading={isUpgrading}
       />
 
       {/* Main Content Area - Two Column Layout */}
@@ -789,7 +790,15 @@ function App() {
             savedPrompts={savedPrompts}
             isLoading={isLoadingPrompts}
             onSelectPrompt={handleLoadSavedPrompt}
-            onDeletePrompt={handleLoadSavedPrompt}
+            onDeletePrompt={(promptId: string) => handleLoadSavedPrompt(savedPrompts.find(p => p.id === promptId) || { 
+              id: promptId, 
+              user_id: '',
+              created_at: '',
+              name: '',
+              prompt_text: '',
+              tone_id: '',
+              context: ''
+            })}
           />
         </Suspense>
       )}
