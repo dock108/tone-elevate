@@ -53,8 +53,8 @@ function App() {
   // --- State Variables ---
   const [session, setSession] = useState<Session | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [profile, setProfile] = useState<any | null>(null); // Add state for user profile
-  const [isPremium, setIsPremium] = useState<boolean>(false); // Add state for premium status
+  const [_profile, _setProfile] = useState<any | null>(null); // Prefixed
+  const [isPremium, setIsPremium] = useState<boolean>(false);
   const [generatedMessage, setGeneratedMessage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [userInput, setUserInput] = useState<string>('');
@@ -451,13 +451,34 @@ function App() {
     }
   };
 
-  // --- Commented out Profile Fetching Logic ---
-  /*
-  // Function to fetch user profile
-  const fetchProfile = async (userId: string) => {
-    // ... existing fetchProfile logic ...
-  };
-  */
+  // Fetch profile data when session changes
+  useEffect(() => {
+    const fetchUserProfile = async (user: User | undefined) => {
+      if (!user) {
+        _setProfile(null); // Use prefixed setter
+        setIsPremium(false);
+        setSavedPrompts([]); // Clear prompts if user logs out
+        // toast.error(`Error fetching user profile: ${error.message}`);
+        _setProfile(null); // Use prefixed setter
+        setIsPremium(false);
+      }
+
+      if (data) {
+        _setProfile(data); // Use prefixed setter
+        setIsPremium(data.is_premium || false);
+      } else {
+        // Profile might not exist yet for a new user, or RLS hides it
+        _setProfile(null); // Use prefixed setter
+        setIsPremium(false);
+      }
+    };
+
+    if (session?.user) {
+      fetchUserProfile(session.user);
+    } else {
+      fetchUserProfile(undefined);
+    }
+  }, [session]);
 
   // --- JSX Return ---
   return (
@@ -525,8 +546,7 @@ function App() {
                 selectedTones={comparisonTones}
                 onSelectionChange={handleComparisonToneChange}
                 maxSelection={maxComparisonTones} // Pass dynamic limit
-                isPremium={isPremium} // Pass premium status
-                isLoggedIn={isLoggedIn} // Add this missing prop
+                isLoggedIn={isLoggedIn} 
               />
             ) : ( // Logged out case
               <>
