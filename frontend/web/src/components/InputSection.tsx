@@ -50,8 +50,9 @@ const InputSection: React.FC<InputSectionProps> = ({
             Just write your thoughts - we'll help polish them for your selected tone and context.
           </p>
         </div>
-        {/* Container for Save/Load buttons, shown only if logged in */} 
-        {isLoggedIn && (
+        {/* Container for Save/Load buttons, shown only if logged in */}
+        {/* TODO: Incomplete - Save/Load Prompt Feature */} 
+        {/* {isLoggedIn && (
           <div className="flex items-center space-x-2">
              <button 
                onClick={handleSaveClick}
@@ -69,7 +70,7 @@ const InputSection: React.FC<InputSectionProps> = ({
                Load Prompts
              </button>
           </div>
-        )}
+        )} */}
       </div>
       <textarea
         id="userInput"

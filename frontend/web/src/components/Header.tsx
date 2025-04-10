@@ -4,18 +4,18 @@ import logoSrc from '../assets/tone-elevate-logo-full.png'; // Import the logo
 
 interface HeaderProps {
   session: Session | null; // Pass session state
-  isPremium: boolean; // Pass premium status
+  isPremium: boolean; // Added isPremium prop
   onLoginClick: () => void; // Handler to open auth modal
   onLogoutClick: () => void; // Handler for logout action
-  onUpgradeClick: () => void; // Handler for upgrade action
+  onUpgradeClick: () => void; // Added handler for upgrade action
 }
 
 const Header: React.FC<HeaderProps> = ({ 
   session, 
-  isPremium,
+  isPremium, // Destructure isPremium
   onLoginClick, 
   onLogoutClick, 
-  onUpgradeClick 
+  onUpgradeClick // Destructure onUpgradeClick
 }) => {
   return (
     <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-10 shadow-sm">
@@ -26,25 +26,20 @@ const Header: React.FC<HeaderProps> = ({
       />
       <div>
         {session?.user ? (
-          // If user is logged in, show email, upgrade (optional), and Logout button
-          <div className="flex items-center space-x-4">
+          // If user is logged in, show email, status/upgrade, and Logout button
+          <div className="flex items-center space-x-3 sm:space-x-4">
             <span className="text-sm text-gray-600 hidden sm:inline" title={session.user.email}> { /* Hide email on small screens */}
               {session.user.email}
             </span>
-            {/* Premium Badge */} 
-            {isPremium && (
-              <span className="ml-2 px-2 py-0.5 inline-flex items-center text-xs font-semibold bg-yellow-100 text-yellow-800 rounded-full shadow-sm">
-                ⭐ Premium
-              </span>
-            )}
-            {/* Conditionally render Upgrade button */} 
-            {!isPremium && (
-              <button
+            {/* Premium Badge or Upgrade Button */} 
+            {isPremium ? (
+              <span className="px-2 py-0.5 text-xs font-semibold bg-yellow-100 text-yellow-800 rounded-full">Premium ✨</span>
+            ) : (
+              <button 
                 onClick={onUpgradeClick}
-                className="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out shadow-sm"
-                title="Upgrade to Premium"
+                className="px-3 py-1 text-xs font-medium bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:from-purple-600 hover:to-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition duration-150 ease-in-out shadow-sm"
               >
-                Upgrade ✨
+                Upgrade
               </button>
             )}
             <button 

@@ -109,7 +109,7 @@ JSON Output:`;
         message: string,
         context: string,
         outputFormat: string,
-        outputLength: string // Added outputLength parameter ('short', 'medium', 'long')
+        outputLength: string // Added outputLength parameter ('Short', 'Medium', 'Long') - Use consistent casing
     ): Promise<string> {
         console.log(`Generating message with Tone: ${tone}, Context: ${context}, Length: ${outputLength}`);
 
@@ -118,9 +118,9 @@ JSON Output:`;
             ? `\n\n**Recipient-Specific Tone Guidance (${tone}):** ${toneSpecificGuidanceText}`
             : '';
 
-        // --- Length Guidance ---
+        // --- Length Guidance (Using Frontend Case: Short, Medium, Long) ---
         let lengthGuidance = '';
-        switch (outputLength) {
+        switch (outputLength?.toLowerCase()) { // Use lowercase for comparison
             case 'short':
                 lengthGuidance = '\n\n**Output Length:** Keep the message very concise (e.g., 1-2 sentences or key bullet points). Focus only on the most critical information.';
                 break;
@@ -216,7 +216,7 @@ Generated Message:`; // Ensure prompt clearly asks for the message
         }
 
         // 3. Parse and Validate Request Body
-        const { userInput, context, outputFormat, outputLength = 'medium' } = await req.json();
+        const { userInput, context, outputFormat, outputLength = 'Medium' } = await req.json();
 
         // Validate required fields
         if (!userInput || !context || !outputFormat) {
@@ -244,9 +244,10 @@ Generated Message:`; // Ensure prompt clearly asks for the message
                 status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } // 413 Payload Too Large
             });
         }
-        // Validate outputLength
-        if (!['short', 'medium', 'long'].includes(outputLength)) {
-            return new Response(JSON.stringify({ error: `Invalid outputLength: ${outputLength}. Must be one of: short, medium, long` }), {
+        // Validate outputLength (Accepting Short, Medium, Long)
+        const validLengths = ['Short', 'Medium', 'Long'];
+        if (typeof outputLength !== 'string' || !validLengths.includes(outputLength)) {
+            return new Response(JSON.stringify({ error: `Invalid outputLength: ${outputLength}. Must be one of: ${validLengths.join(', ')}` }), {
                 status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
         }

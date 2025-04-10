@@ -14,6 +14,7 @@ import InputSection from './components/InputSection';
 import ConfigSection from './components/ConfigSection';
 import ActionSection from './components/ActionSection';
 import OutputSection from './components/OutputSection';
+import InfoCard from './components/InfoCard'; // Import the new info card
 
 // Import Saved Prompts API helpers and types
 import {
@@ -29,6 +30,7 @@ import { toneTemplatesData, ToneTemplate } from './lib/toneTemplatesData';
 import ToneTemplates from './components/ToneTemplates';
 import MultiToneSelector from './components/MultiToneSelector'; // Import the new component
 import ToneComparisonDisplay from './components/ToneComparisonDisplay'; // Import the comparison display
+import ContentLengthSelector from './components/ContentLengthSelector'; // Import the new length selector
 
 // Lazy load potentially heavy/unused components
 // TODO: Premium features not ready yet
@@ -67,6 +69,7 @@ function App() {
   const [isComparing, setIsComparing] = useState<boolean>(false); // Loading state for comparison generation
 
   // Saved Prompts State
+  // TODO: Incomplete - Save/Load Prompt Feature
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
   const [isLoadingPrompts, setIsLoadingPrompts] = useState<boolean>(false);
   const [showSavedPromptsModal, setShowSavedPromptsModal] = useState<boolean>(false);
@@ -78,6 +81,13 @@ function App() {
   // const [showPreferencesModal, setShowPreferencesModal] = useState(false);
   const [copyButtonText, setCopyButtonText] = useState('Copy');
   const [hasJustGenerated, setHasJustGenerated] = useState(false); // State to prevent duplicate submission
+
+  // --- Refinement State ---
+  const [refinementInput, setRefinementInput] = useState<string>("");
+  const [refinementHistory, setRefinementHistory] = useState<{ request: string; response: string }[]>([]);
+  const [isRefining, setIsRefining] = useState<boolean>(false);
+  const [selectedComparisonForRefinement, setSelectedComparisonForRefinement] = useState<string | null>(null); // Track which comparison result is selected
+  const [outputLength, setOutputLength] = useState<string>('Medium'); // Add state for output length
 
   // Define tone options mirroring the structure in the backend for consistency
   const toneOptions = [
@@ -136,34 +146,31 @@ function App() {
     setSelectedContext(defaultContext);
   }, []); // Empty dependency array ensures this runs only once
 
-  // Fetch saved prompts when session changes
+  // Fetch saved prompts when session changes (Simplified: Fetching moved to profile effect)
   useEffect(() => {
-    if (session?.user?.id) {
-      handleFetchSavedPrompts(session.user.id);
-    } else {
-      // Clear prompts if user logs out
-      setSavedPrompts([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
+    // Removed prompt fetching logic from here - now handled in fetchUserProfile
+    // If user logs out, prompt clearing is handled elsewhere (auth listener, logout handler)
+  }, [session]); // Re-run when session changes
 
-  // Auth listener
+  // Auth listener (Removed premium check calls)
   useEffect(() => {
     // Fetch initial session state
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      setSession(initialSession);
+      // REMOVED: await checkUserPremiumStatus(initialSession?.user?.id);
     });
 
     // Subscribe to auth state changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      // REMOVED: await checkUserPremiumStatus(newSession?.user?.id);
+      // Prompt fetching is now handled in the other useEffect based on session
+      // Clearing state on logout is handled in fetchUserProfile and handleLogout
     });
 
     // Cleanup function to unsubscribe when the component unmounts
     return () => {
-      // Call unsubscribe on the subscription object within the data object
       authListener?.subscription?.unsubscribe();
-      // Cleanup profileSubscription if it's uncommented later
     };
   }, []); // Empty dependency array ensures this runs only on mount and unmount
 
@@ -187,6 +194,10 @@ function App() {
   const handleClearInput = () => {
     setUserInput('');
     setGeneratedMessage(null); // Optionally clear generated message too
+    setComparisonResults({}); // Clear comparison results
+    setSelectedComparisonForRefinement(null); // Clear refinement selection
+    setRefinementHistory([]); // Clear refinement history
+    setRefinementInput(''); // Clear refinement input
   };
 
   const handleToneChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -195,6 +206,11 @@ function App() {
 
   const handleContextChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedContext(event.target.value);
+  };
+
+  // Handler for output length change
+  const handleOutputLengthChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setOutputLength(event.target.value);
   };
 
   // --- Auth Handlers ---
@@ -244,24 +260,22 @@ function App() {
   };
 
   // --- Saved Prompts Handlers ---
-  const handleToggleSavedPromptsModal = () => {
-    setShowSavedPromptsModal(prev => !prev);
-  };
-
+  // TODO: Incomplete - Save/Load Prompt Feature
   const handleFetchSavedPrompts = async (userId: string) => {
     setIsLoadingPrompts(true);
-    const { data, error } = await fetchSavedPrompts(userId);
-    if (error) {
-      toast.error(`Failed to load saved prompts: ${error}`);
-    } else if (data) {
-      setSavedPrompts(data);
-    } else {
-      setSavedPrompts([]); // Set to empty array if data is null
+    try {
+      const prompts = await fetchSavedPrompts(userId);
+      setSavedPrompts(prompts);
+    } catch (error) {
+      toast.error('Failed to load saved prompts.');
+      console.error("Error fetching saved prompts:", error);
+    } finally {
+      setIsLoadingPrompts(false);
     }
-    setIsLoadingPrompts(false);
   };
 
-  const handleSaveCurrentPrompt = async (label?: string) => {
+  // TODO: Incomplete - Save/Load Prompt Feature
+  const handleSaveCurrentPrompt = async (promptName: string) => {
     if (!session?.user?.id) {
       toast.error("You must be logged in to save prompts.");
       return;
@@ -271,45 +285,86 @@ function App() {
       return;
     }
 
-    const promptData: NewSavedPromptData = {
+    const newPromptData: NewSavedPromptData = {
       user_id: session.user.id,
-      label: label || null,
+      name: promptName,
       prompt_text: userInput,
       tone_id: selectedTone,
-      context: selectedContext,
+      context: selectedContext
     };
 
-    const toastId = toast.loading("Saving prompt...");
-    const { data, error } = await saveNewPrompt(promptData);
-
-    if (error) {
-      toast.error(`Failed to save prompt: ${error}`, { id: toastId });
-    } else if (data) {
-      toast.success("Prompt saved successfully!", { id: toastId });
-      // Add the new prompt to the beginning of the list locally
-      // or refetch the list for simplicity
-      setSavedPrompts(prev => [data, ...prev]);
-      // Optionally close modal or give other feedback
+    const toastId = toast.loading('Saving prompt...');
+    try {
+      const savedPrompt = await saveNewPrompt(newPromptData);
+      setSavedPrompts(prev => [...prev, savedPrompt]);
+      toast.success(`Prompt "${promptName}" saved!`, { id: toastId });
+    } catch (error: any) {
+      toast.error(`Failed to save prompt: ${error.message}`, { id: toastId });
+      console.error("Error saving prompt:", error);
     }
   };
 
-  const handleDeleteSavedPrompt = async (promptId: string) => {
+  // TODO: Incomplete - Save/Load Prompt Feature
+  const handleDeletePrompt = async (promptId: string) => {
     if (!session?.user?.id) {
       toast.error("Authentication error.");
       return;
     }
 
-    // Optional: Add confirmation dialog here
-    const confirmDelete = window.confirm("Are you sure you want to delete this saved prompt?");
-    if (!confirmDelete) {
+    const toastId = toast.loading('Deleting prompt...');
+    try {
+      await deletePrompt(promptId, session.user.id); 
+      setSavedPrompts(prev => prev.filter(p => p.id !== promptId));
+      toast.success('Prompt deleted successfully.', { id: toastId });
+    } catch (error: any) {
+      toast.error(`Failed to delete prompt: ${error.message}`, { id: toastId });
+      console.error("Error deleting prompt:", error);
+    }
+  };
+
+  // TODO: Incomplete - Save/Load Prompt Feature
+  const handleOpenSavedPromptsModal = () => {
+     if (!session?.user?.id) {
+      toast.error("You must be logged in to view saved prompts.");
       return;
     }
+    if (savedPrompts.length === 0 && !isLoadingPrompts) {
+      // Fetch prompts if modal is opened and prompts aren't loaded/loading
+      handleFetchSavedPrompts(session.user.id);
+    }
+    setShowSavedPromptsModal(true);
+  };
 
-    const toastId = toast.loading("Deleting prompt...");
-    const { success, error } = await deletePrompt(promptId, session.user.id);
+  // TODO: Incomplete - Save/Load Prompt Feature
+  const handleCloseSavedPromptsModal = () => {
+    setShowSavedPromptsModal(false);
+  };
 
-    if (error || !success) {
-      toast.error(`Failed to delete prompt: ${error || 'Unknown error'}`, { id: toastId });
+  // TODO: Incomplete - Save/Load Prompt Feature
+  const handleSelectSavedPrompt = (prompt: SavedPrompt) => {
+     // Validate tone and context before applying
+    const isValidTone = toneOptions.some(opt => opt.id === prompt.tone_id);
+    const isValidContext = contextOptions.includes(prompt.context);
+
+    if (!isValidTone) {
+      toast.error(`Saved prompt has an invalid tone (${prompt.tone_id}). Please update or delete it.`);
+    } 
+    if (!isValidContext) {
+      toast.error(`Saved prompt has an invalid context (${prompt.context}). Please update or delete it.`);
+    }
+
+    setUserInput(prompt.prompt_text);
+    setSelectedTone(isValidTone ? prompt.tone_id : selectedTone); // Apply if valid
+    setSelectedContext(isValidContext ? prompt.context : selectedContext); // Apply if valid
+    
+    setGeneratedMessage(null); // Clear output
+    setSelectedComparisonForRefinement(null); // Clear refinement selection
+    setComparisonResults({}); // Clear comparison results
+    setRefinementHistory([]); // Clear refinement history
+    setRefinementInput(''); // Clear refinement input
+    handleCloseSavedPromptsModal(); // Close modal after selection
+    if (isValidTone && isValidContext) {
+      toast.success(`Loaded prompt "${prompt.name}".`);
     } else {
       toast.success("Prompt deleted.", { id: toastId });
       // Remove the prompt from the local state
@@ -355,11 +410,15 @@ function App() {
   // --- Multi-Tone Selection Handler ---
   const handleComparisonToneChange = (selectedIds: string[]) => {
     setComparisonTones(selectedIds);
+    setSelectedComparisonForRefinement(null); // Clear selection if comparison tones change
   };
 
   // --- API Call Handler (Updated for Multi-Tone) ---
   const handleGenerateOrCompare = async () => {
     if (!isInputValid || isGenerating || isComparing) return;
+    setSelectedComparisonForRefinement(null); // Reset refinement selection on new generation
+    setRefinementHistory([]); // Reset history on new generation
+    setRefinementInput(''); // Reset input on new generation
 
     const outputFormat = "Raw Text";
     const tonesToGenerate = session?.user && comparisonTones.length > 0 ? comparisonTones : [selectedTone]; // Use comparison tones if logged in and selected, else single tone
@@ -388,7 +447,8 @@ function App() {
             // If passing toneId is needed, it might look like: 
             // tone: toneId, // Pass specific tone ID
             context: selectedContext, 
-            outputFormat: outputFormat
+            outputFormat: outputFormat,
+            outputLength: outputLength // Add the outputLength state here
           },
         })
         .then(({ data, error: invokeError }) => {
@@ -451,57 +511,192 @@ function App() {
     }
   };
 
-  // Fetch profile data when session changes
+  // Fetch profile data when session changes (This effect handles profile and premium status)
   useEffect(() => {
     const fetchUserProfile = async (user: User | undefined) => {
       if (!user) {
-        _setProfile(null); 
-        setIsPremium(false);
-        setSavedPrompts([]); 
+        _setProfile(null);
+        setIsPremium(false); // Reset premium on logout/no user
+        setSavedPrompts([]); // Clear prompts on logout/no user
         return; // Ensure we exit here if no user
       }
-      
-      // Fetch saved prompts here since we need the user ID (moved from separate effect)
-      handleFetchSavedPrompts(user.id); 
+
+      // Fetch saved prompts here since we need the user ID
+      handleFetchSavedPrompts(user.id);
 
       // Restore the try/catch and query
       try {
         const { data, error } = await supabase
           .from('profiles')
           .select('id, is_premium') // Fetch only needed fields
-          .eq('id', user.id)
+          .eq('id', user.id) // Match against the 'id' column in profiles
           .single();
 
         if (error && error.code !== 'PGRST116') { // PGRST116: row not found
           throw error;
         }
 
-        if (data) { // Now data is defined
-          _setProfile(data); 
+        if (data) { // Data exists, profile found
+          _setProfile(data);
           setIsPremium(data.is_premium || false);
-        } else {
+        } else { // No data (PGRST116 or other reason)
           // Profile might not exist yet for a new user, or RLS hides it
-          _setProfile(null); 
-          setIsPremium(false);
+          _setProfile(null);
+          setIsPremium(false); // Assume not premium if profile not found
         }
       } catch (error: any) {
-        console.error("Error fetching user profile:", error); 
-        _setProfile(null); 
-        setIsPremium(false);
+        console.error("Error fetching user profile:", error);
+        _setProfile(null);
+        setIsPremium(false); // Default to not premium on error
+        setSavedPrompts([]); // Also clear prompts on profile fetch error
         // Optionally show a toast
-        // toast.error(`Error fetching user profile: ${error.message}`);
+        toast.error(`Error fetching user profile: ${error.message}`);
       }
     };
 
-    // This part correctly calls the async function
-    if (session?.user) {
-      fetchUserProfile(session.user);
-    } else {
-      fetchUserProfile(undefined);
-    }
+    // Call fetchUserProfile when session changes
+    fetchUserProfile(session?.user); // Pass the user object or undefined
+
   }, [session]); // Re-run when session changes
 
+  // --- Refinement Handlers ---
+  const handleRefinementInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setRefinementInput(event.target.value);
+  };
+
+  // Handler to select a specific comparison result for refinement
+  const handleSelectComparisonForRefinement = (toneId: string) => {
+    if (comparisonResults[toneId]) {
+      setSelectedComparisonForRefinement(toneId);
+      setRefinementInput(''); // Clear refinement input when selecting new target
+      // Optionally pre-fill refinement input or focus it
+      toast.info(`Selected "${toneId}" tone for refinement.`);
+    } else {
+      console.warn('Attempted to select non-existent comparison result for refinement:', toneId);
+    }
+  };
+
+  const handleRefinementSubmit = async () => {
+    // Determine the message to refine based on context
+    const messageToRefine = selectedComparisonForRefinement 
+                            ? comparisonResults[selectedComparisonForRefinement]
+                            : generatedMessage;
+
+    if (!isPremium) {
+      toast.error("Message refinement requires a Premium subscription.");
+      return;
+    }
+    if (!messageToRefine) { // Check the actual message determined above
+      toast.error("No message available to refine.");
+      return;
+    }
+    if (!refinementInput.trim()) {
+      toast.error("Please enter your refinement request.");
+      return;
+    }
+
+    setIsRefining(true);
+    const currentRefinementRequest = refinementInput;
+    const toastId = toast.loading("Refining message...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke('refine-output', {
+        body: {
+          originalMessage: messageToRefine, // Use the determined message
+          userFollowUp: currentRefinementRequest,
+          tone: selectedTone, 
+          context: selectedContext,
+        },
+      });
+
+      if (error) throw new Error(error.message || 'Function invocation failed');
+      if (data.error) throw new Error(data.error);
+      if (!data.refinedMessage) throw new Error('Refined message missing from response.');
+
+      const refinedResponse = data.refinedMessage;
+
+      // Update state differently based on whether we were refining a comparison or single output
+      if (selectedComparisonForRefinement) {
+        // Refined from comparison: Clear comparison, set as main output
+        setGeneratedMessage(refinedResponse);
+        setComparisonResults({});
+        setSelectedComparisonForRefinement(null); 
+      } else {
+        // Refined from single output: Just update main output
+        setGeneratedMessage(refinedResponse);
+      }
+      
+      // Add to history (common to both cases)
+      setRefinementHistory(prev => [...prev, { request: currentRefinementRequest, response: refinedResponse }]);
+      
+      // Clear the input field only on success
+      setRefinementInput(""); 
+      
+      toast.success("Message refined successfully!", { id: toastId });
+
+    } catch (err) {
+      console.error("Refinement error:", err);
+      const message = err instanceof Error ? err.message : 'Refinement failed.';
+      toast.error(`Refinement failed: ${message}`, { id: toastId });
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
+  // --- Feedback Handler (Placeholder) ---
+  const handleFeedbackClick = () => {
+    // Simple mailto link for now
+    window.location.href = "mailto:feedback@toneelevate.com?subject=ToneElevate Feedback";
+    toast.info("Opening email client for feedback...");
+  };
+
+  // --- Cancel Subscription Handler ---
+  const handleCancelSubscriptionClick = async () => {
+    // Confirmation Dialog
+    const isConfirmed = window.confirm(
+      "Are you sure you want to cancel your Premium subscription?\n\nYou will retain access until the end of your current billing period."
+    );
+
+    if (!isConfirmed) {
+      return; // User cancelled the action
+    }
+
+    const toastId = toast.loading("Processing cancellation...");
+    
+    try {
+      // Call the Supabase Edge Function to handle cancellation
+      const { data, error } = await supabase.functions.invoke('cancel-subscription');
+
+      if (error) {
+        // Handle potential errors from the function invocation itself
+        throw new Error(error.message || 'Function invocation failed');
+      }
+      
+      if (data.error) {
+         // Handle errors returned successfully from the function logic
+         throw new Error(data.error);
+      }
+
+      if (data.success) {
+         toast.success("Subscription scheduled to cancel at period end.", { id: toastId });
+         // NOTE: We don't update isPremium state here. 
+         // The UI should ideally reflect the cancellation status based on subscription data 
+         // fetched from Stripe or updated via webhooks (e.g., show "Cancels on [date]").
+         // For simplicity now, the UI won't change immediately after clicking cancel.
+      } else {
+         // Should be caught by data.error check, but as a fallback
+         throw new Error(data.message || "Cancellation failed for an unknown reason.");
+      }
+
+    } catch (error: any) {
+      console.error("Cancellation processing error:", error);
+      toast.error(`Cancellation failed: ${error.message}`, { id: toastId });
+    }
+    // Loading state is handled by the toast
+  };
+
   // --- JSX Return ---
+  console.log('[App.tsx] Rendering - isPremium state:', isPremium);
   return (
     <div className="min-h-screen bg-gray-100 font-sans flex flex-col">
       {/* === SEO Head Management === */}
@@ -523,95 +718,128 @@ function App() {
         onUpgradeClick={handleUpgradeClick}
       />
 
-      {/* Main Content Area */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-64"> {/* Changed from max-w-7xl and removed grid */}
+      {/* Main Content Area - Two Column Layout */}
+      <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* === SEO H1 Heading (Visually Hidden) === */}
         <h1 className="sr-only">
           Unsure How to Phrase It? Get AI Help Writing Messages with the Right Tone
         </h1>
 
-        {/* Left Column: Input, Config, Actions */}
-        <div className="space-y-6 max-w-4xl mx-auto"> {/* Added mx-auto and max-w-4xl for centered content */}
-          {/* Add a placeholder or message if user is not logged in but tries to compare? */} 
-          {!session?.user && (
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                  <p className="text-sm text-yellow-700">
-                     ✨ <button onClick={handleOpenAuthModal} className="font-medium underline hover:text-yellow-800">Log in or Sign up</button> to compare multiple tone variations side-by-side!
-                  </p>
-              </div>
-          )}
+        <div className="lg:grid lg:grid-cols-3 lg:gap-8">
+          {/* Left Column (takes 2/3 on large screens) */}
+          <div className="lg:col-span-2 space-y-6 mb-8 lg:mb-0 pb-24">
 
-          {/* Tone Templates Section (Moved Above Input) */}
-          <ToneTemplates
-            templates={toneTemplatesData}
-            onSelectTemplate={handleSelectToneTemplate}
-          />
-
-          {/* Pass necessary state and handlers to child components */}
-          <InputSection 
-            userInput={userInput}
-            onUserInputChange={handleUserInputChange}
-            onClearInput={handleClearInput}
-            maxLength={MAX_INPUT_LENGTH}
-            onSavePrompt={() => handleSaveCurrentPrompt()}
-            onLoadPrompt={handleToggleSavedPromptsModal}
-            isLoggedIn={!!session?.user}
-          />
-          {/* Show Single Tone Selector OR Multi Tone Selector */} 
-          {(() => {
-            // Add console log here
-            console.log('[App.tsx] Rendering conditional section. isLoggedIn:', !!session?.user);
-            return !!session?.user ? (
-              <MultiToneSelector
-                toneOptions={toneOptions}
-                selectedTones={comparisonTones}
-                onSelectionChange={handleComparisonToneChange}
-                maxSelection={maxComparisonTones} // Pass dynamic limit
-                isLoggedIn={isLoggedIn} 
-              />
-            ) : ( // Logged out case
-              <>
-                <ConfigSection
-                  selectedTone={selectedTone}
-                  selectedContext={selectedContext}
-                  toneOptions={toneOptions}
-                  contextOptions={contextOptions}
-                  onToneChange={handleToneChange}
-                  onContextChange={handleContextChange}
-                />
-                {/* Add the new banner specifically for logged-out users below ConfigSection */} 
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-center">
-                  <p className="text-sm text-blue-700">
-                    Want to compare different tones side-by-side? 
-                    <button 
-                      onClick={handleOpenAuthModal} 
-                      className="font-medium underline hover:text-blue-800 ml-1"
-                    >
-                      Create an account
-                    </button> or 
-                    <button 
-                      onClick={handleOpenAuthModal} 
-                      className="font-medium underline hover:text-blue-800 ml-1"
-                    >
-                      log in
-                    </button>!
-                  </p>
+            {/* Add a placeholder or message if user is not logged in but tries to compare? */}
+            {/* This might be redundant now with the InfoCard */}
+            {/* {!session?.user && (
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                    <p className="text-sm text-yellow-700">
+                       ✨ <button onClick={handleOpenAuthModal} className="font-medium underline hover:text-yellow-800">Log in or Sign up</button> to compare multiple tone variations side-by-side!
+                    </p>
                 </div>
-              </>
-            );
-          })()}
-          
-          {/* Show Single Output OR Comparison Output */} 
-          {Object.keys(comparisonResults).length > 0 ? (
-              <ToneComparisonDisplay results={comparisonResults} /> 
-          ) : (
-              <OutputSection 
-                generatedMessage={generatedMessage}
-                isGenerating={isGenerating}
-                copyButtonText={copyButtonText}
-                onCopyToClipboard={handleCopyToClipboard}
+            )} */}
+
+            {/* Tone Templates Section */}
+            <ToneTemplates
+              templates={toneTemplatesData}
+              onSelectTemplate={handleSelectToneTemplate}
+            />
+
+            {/* Input Section */}
+            <InputSection 
+              userInput={userInput}
+              onUserInputChange={handleUserInputChange}
+              onClearInput={handleClearInput}
+              maxLength={MAX_INPUT_LENGTH}
+              // TODO: Incomplete - Save/Load Prompt Feature
+              // onSavePrompt={() => handleSaveCurrentPrompt()} // Keep commented
+              // onLoadPrompt={handleToggleSavedPromptsModal} // Comment out this specific prop
+              isLoggedIn={!!session?.user}
+            />
+
+            {/* Conditional Config Section (Single Tone or Multi-Tone) */}
+            {(() => {
+              // Add console log here
+              // console.log('[App.tsx] Rendering conditional section. isLoggedIn:', !!session?.user);
+              return !!session?.user ? (
+                <MultiToneSelector
+                  toneOptions={toneOptions}
+                  selectedTones={comparisonTones}
+                  onSelectionChange={handleComparisonToneChange}
+                  maxSelection={maxComparisonTones} // Pass dynamic limit
+                  isLoggedIn={isLoggedIn} 
+                />
+              ) : ( // Logged out case
+                <>
+                  <ConfigSection
+                    selectedTone={selectedTone}
+                    selectedContext={selectedContext}
+                    toneOptions={toneOptions}
+                    contextOptions={contextOptions}
+                    onToneChange={handleToneChange}
+                    onContextChange={handleContextChange}
+                  />
+                  {/* Content Length Selector now part of ConfigSection group for logged-out */}
+                  {/* <div className="mt-4">
+                      <ContentLengthSelector 
+                          selectedLength={outputLength}
+                          onLengthChange={handleOutputLengthChange}
+                      />
+                   </div> */}
+                </>
+              );
+            })()}
+
+            {/* Content Length Selector (Always visible below config/multi-select) */}
+             <div className="max-w-sm"> {/* Constrain width slightly */} 
+                  <ContentLengthSelector 
+                     selectedLength={outputLength}
+                     onLengthChange={handleOutputLengthChange}
+                  />
+              </div>
+
+            {/* Output Area (Single or Comparison) */}
+            {Object.keys(comparisonResults).length > 0 ? (
+                <ToneComparisonDisplay 
+                  results={comparisonResults} 
+                  // --- Refinement Props for Comparison ---
+                  isPremium={isPremium}
+                  isRefining={isRefining}
+                  refinementInput={refinementInput}
+                  onRefinementInputChange={handleRefinementInputChange}
+                  onRefinementSubmit={handleRefinementSubmit}
+                  refinementHistory={refinementHistory}
+                  selectedComparisonForRefinement={selectedComparisonForRefinement} // Pass down selected ID
+                  onSelectComparisonForRefinement={handleSelectComparisonForRefinement} // Pass down handler
+                /> 
+            ) : (
+                <OutputSection 
+                  generatedMessage={generatedMessage}
+                  isGenerating={isGenerating}
+                  copyButtonText={copyButtonText}
+                  onCopyToClipboard={handleCopyToClipboard}
+                  // --- Refinement Props ---
+                  isPremium={isPremium}
+                  isRefining={isRefining}
+                  refinementInput={refinementInput}
+                  onRefinementInputChange={handleRefinementInputChange}
+                  onRefinementSubmit={handleRefinementSubmit}
+                  refinementHistory={refinementHistory}
+                />
+            )}
+          </div>
+
+          {/* Right Column (takes 1/3 on large screens) */}
+          <div className="lg:col-span-1">
+            <InfoCard
+               isLoggedIn={isLoggedIn}
+               isPremium={isPremium}
+               onLoginClick={handleOpenAuthModal}
+               onUpgradeClick={handleUpgradeClick}
+               onCancelSubscriptionClick={handleCancelSubscriptionClick}
+               onFeedbackClick={handleFeedbackClick}
               />
-          )}
+          </div>
         </div>
       </main>
 
