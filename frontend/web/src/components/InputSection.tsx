@@ -1,43 +1,21 @@
 import React from 'react';
 
 interface InputSectionProps {
-  // Define props needed from App.tsx (e.g., userInput value, change handler, max length)
+  // Define props needed from App.tsx
   userInput: string;
   onUserInputChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   maxLength: number;
-  onClearInput: () => void; // Add prop for clearing input
-  isLoggedIn: boolean; // New prop: Is the user logged in?
-  onSavePrompt: (label?: string) => void; // New prop: Handler to save the current prompt
-  onLoadPrompt: () => void; // New prop: Handler to open the load prompt modal
+  onClearInput: () => void; // Handler for clearing input
 }
 
 const InputSection: React.FC<InputSectionProps> = ({ 
   userInput, 
   onUserInputChange, 
   maxLength,
-  onClearInput,
-  isLoggedIn,
-  onSavePrompt,
-  onLoadPrompt
+  onClearInput
  }) => {
   const currentLength = userInput.length;
   const remainingLength = maxLength - currentLength;
-
-  // Optional: State for handling the prompt label input if needed directly here
-  // const [promptLabel, setPromptLabel] = useState('');
-  // const handleSaveClick = () => {
-  //   // Potentially open a small input for label first
-  //   // For now, just call the handler without a label (or with a default)
-  //   onSavePrompt(); 
-  // };
-  
-  // Simple save trigger (no label input in this version)
-  const handleSaveClick = () => {
-      // You could add logic here to prompt for a label if desired
-      // For example, using a simple window.prompt or a small inline input field
-      // const label = window.prompt("Enter an optional label for this prompt:");
-      onSavePrompt(); // Pass label if implemented: onSavePrompt(label || undefined);
-  };
 
   return (
     <div className="relative">
@@ -50,27 +28,6 @@ const InputSection: React.FC<InputSectionProps> = ({
             Just write your thoughts - we'll help polish them for your selected tone and context.
           </p>
         </div>
-        {/* Container for Save/Load buttons, shown only if logged in */}
-        {/* TODO: Incomplete - Save/Load Prompt Feature */} 
-        {/* {isLoggedIn && (
-          <div className="flex items-center space-x-2">
-             <button 
-               onClick={handleSaveClick}
-               className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition duration-150 ease-in-out"
-               disabled={!userInput.trim()}
-               title="Save current input as a prompt"
-             >
-               Save Prompt
-             </button>
-             <button 
-               onClick={onLoadPrompt}
-               className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150 ease-in-out"
-               title="Load a saved prompt"
-             >
-               Load Prompts
-             </button>
-          </div>
-        )} */}
       </div>
       <textarea
         id="userInput"

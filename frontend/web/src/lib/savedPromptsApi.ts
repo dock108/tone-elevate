@@ -6,7 +6,7 @@ export interface SavedPrompt {
   id: string;
   user_id: string;
   created_at: string;
-  label?: string | null; // Label is optional
+  name?: string | null; // Added name property
   prompt_text: string;
   tone_id: string;
   context: string;
@@ -15,15 +15,13 @@ export interface SavedPrompt {
 /**
  * Fetches all saved prompts for a specific user, ordered by creation date (newest first).
  * @param userId - The UUID of the user whose prompts are to be fetched.
- * @returns An object containing either the fetched prompts or an error.
+ * @returns An array of saved prompts or an empty array on error
  */
-export const fetchSavedPrompts = async (
-  userId: string
-): Promise<{ data: SavedPrompt[] | null; error: PostgrestError | null | string }> => {
+export const fetchSavedPrompts = async (userId: string): Promise<SavedPrompt[]> => {
   // Ensure userId is provided
   if (!userId) {
     console.error('fetchSavedPrompts: userId is required.');
-    return { data: null, error: 'User ID is required to fetch prompts.' };
+    return [];
   }
 
   try {
@@ -37,16 +35,15 @@ export const fetchSavedPrompts = async (
     // Handle potential Supabase errors during the fetch
     if (error) {
       console.error('Error fetching saved prompts:', error);
-      return { data: null, error: 'Failed to load saved prompts. Please try again.' };
+      return [];
     }
 
     // Return the fetched data
-    return { data: data as SavedPrompt[], error: null }; // Type assertion
+    return data as SavedPrompt[] || []; // Type assertion
   } catch (err) {
     // Handle unexpected errors during the operation
     console.error('Unexpected error fetching saved prompts:', err);
-    const message = err instanceof Error ? err.message : 'An unexpected error occurred.';
-    return { data: null, error: `Failed to load prompts: ${message}` };
+    return [];
   }
 };
 

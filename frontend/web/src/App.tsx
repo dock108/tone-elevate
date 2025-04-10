@@ -19,10 +19,7 @@ import InfoCard from './components/InfoCard'; // Import the new info card
 // Import Saved Prompts API helpers and types
 import {
   fetchSavedPrompts,
-  saveNewPrompt,
-  deletePrompt,
-  SavedPrompt,
-  NewSavedPromptData
+  SavedPrompt
 } from './lib/savedPromptsApi';
 
 // Import Tone Templates data and component
@@ -70,10 +67,10 @@ function App() {
   const [isComparing, setIsComparing] = useState<boolean>(false); // Loading state for comparison generation
 
   // Saved Prompts State
-  // TODO: Incomplete - Save/Load Prompt Feature
+  // Simplify - only keep what's needed
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
   const [isLoadingPrompts, setIsLoadingPrompts] = useState<boolean>(false);
-  const [showSavedPromptsModal, setShowSavedPromptsModal] = useState<boolean>(false);
+  const [showSavedPromptsModal, setShowSavedPromptsModal] = useState<boolean>(false); // State for Saved Prompts Modal
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false); // State for Auth Modal
 
   // Other UI State
@@ -282,7 +279,7 @@ function App() {
   };
 
   // --- Saved Prompts Handlers ---
-  // TODO: Incomplete - Save/Load Prompt Feature
+  // Simplified to just fetching prompts
   const handleFetchSavedPrompts = async (userId: string) => {
     setIsLoadingPrompts(true);
     try {
@@ -296,100 +293,9 @@ function App() {
     }
   };
 
-  // TODO: Incomplete - Save/Load Prompt Feature
-  const handleSaveCurrentPrompt = async (promptName: string) => {
-    if (!session?.user?.id) {
-      toast.error("You must be logged in to save prompts.");
-      return;
-    }
-    if (!userInput.trim()) {
-      toast.error("Cannot save an empty prompt.");
-      return;
-    }
-
-    const newPromptData: NewSavedPromptData = {
-      user_id: session.user.id,
-      name: promptName,
-      prompt_text: userInput,
-      tone_id: selectedTone,
-      context: selectedContext
-    };
-
-    const toastId = toast.loading('Saving prompt...');
-    try {
-      const savedPrompt = await saveNewPrompt(newPromptData);
-      setSavedPrompts(prev => [...prev, savedPrompt]);
-      toast.success(`Prompt "${promptName}" saved!`, { id: toastId });
-    } catch (error: any) {
-      toast.error(`Failed to save prompt: ${error.message}`, { id: toastId });
-      console.error("Error saving prompt:", error);
-    }
-  };
-
-  // TODO: Incomplete - Save/Load Prompt Feature
-  const handleDeletePrompt = async (promptId: string) => {
-    if (!session?.user?.id) {
-      toast.error("Authentication error.");
-      return;
-    }
-
-    const toastId = toast.loading('Deleting prompt...');
-    try {
-      await deletePrompt(promptId, session.user.id); 
-      setSavedPrompts(prev => prev.filter(p => p.id !== promptId));
-      toast.success('Prompt deleted successfully.', { id: toastId });
-    } catch (error: any) {
-      toast.error(`Failed to delete prompt: ${error.message}`, { id: toastId });
-      console.error("Error deleting prompt:", error);
-    }
-  };
-
-  // TODO: Incomplete - Save/Load Prompt Feature
-  const handleOpenSavedPromptsModal = () => {
-     if (!session?.user?.id) {
-      toast.error("You must be logged in to view saved prompts.");
-      return;
-    }
-    if (savedPrompts.length === 0 && !isLoadingPrompts) {
-      // Fetch prompts if modal is opened and prompts aren't loaded/loading
-      handleFetchSavedPrompts(session.user.id);
-    }
-    setShowSavedPromptsModal(true);
-  };
-
-  // TODO: Incomplete - Save/Load Prompt Feature
+  // Remove unused handlers
   const handleCloseSavedPromptsModal = () => {
     setShowSavedPromptsModal(false);
-  };
-
-  // TODO: Incomplete - Save/Load Prompt Feature
-  const handleSelectSavedPrompt = (prompt: SavedPrompt) => {
-     // Validate tone and context before applying
-    const isValidTone = toneOptions.some(opt => opt.id === prompt.tone_id);
-    const isValidContext = contextOptions.includes(prompt.context);
-
-    if (!isValidTone) {
-      toast.error(`Saved prompt has an invalid tone (${prompt.tone_id}). Please update or delete it.`);
-    } 
-    if (!isValidContext) {
-      toast.error(`Saved prompt has an invalid context (${prompt.context}). Please update or delete it.`);
-    }
-
-    setUserInput(prompt.prompt_text);
-    setSelectedTone(isValidTone ? prompt.tone_id : selectedTone); // Apply if valid
-    setSelectedContext(isValidContext ? prompt.context : selectedContext); // Apply if valid
-    
-    setGeneratedMessage(null); // Clear output
-    setSelectedComparisonForRefinement(null); // Clear refinement selection
-    setComparisonResults({}); // Clear comparison results
-    setRefinementHistory([]); // Clear refinement history
-    setRefinementInput(''); // Clear refinement input
-    handleCloseSavedPromptsModal(); // Close modal after selection
-    if (isValidTone && isValidContext) {
-      toast.success(`Loaded prompt "${prompt.name}".`);
-    } else {
-      toast.warning("Loaded prompt with some invalid settings. Default settings applied where needed.");
-    }
   };
 
   const handleLoadSavedPrompt = (prompt: SavedPrompt) => {
@@ -590,7 +496,7 @@ function App() {
       setSelectedComparisonForRefinement(toneId);
       setRefinementInput(''); // Clear refinement input when selecting new target
       // Optionally pre-fill refinement input or focus it
-      toast.info(`Selected "${toneId}" tone for refinement.`);
+      toast.success(`Selected "${toneId}" tone for refinement.`);
     } else {
       console.warn('Attempted to select non-existent comparison result for refinement:', toneId);
     }
@@ -667,7 +573,7 @@ function App() {
   const handleFeedbackClick = () => {
     // Simple mailto link for now
     window.location.href = "mailto:feedback@toneelevate.com?subject=ToneElevate Feedback";
-    toast.info("Opening email client for feedback...");
+    toast.success("Opening email client for feedback...");
   };
 
   // --- Cancel Subscription Handler ---
@@ -771,10 +677,7 @@ function App() {
               onUserInputChange={handleUserInputChange}
               onClearInput={handleClearInput}
               maxLength={MAX_INPUT_LENGTH}
-              // TODO: Incomplete - Save/Load Prompt Feature
-              // onSavePrompt={() => handleSaveCurrentPrompt()} // Keep commented
-              // onLoadPrompt={handleToggleSavedPromptsModal} // Comment out this specific prop
-              isLoggedIn={!!session?.user}
+              // Remove the unused props
             />
 
             {/* Conditional Config Section (Single Tone or Multi-Tone) */}
@@ -882,11 +785,11 @@ function App() {
         <Suspense fallback={<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><LoadingFallback /></div>}>
           <SavedPromptsModal
             isOpen={showSavedPromptsModal}
-            onClose={handleToggleSavedPromptsModal}
+            onClose={handleCloseSavedPromptsModal}
             savedPrompts={savedPrompts}
             isLoading={isLoadingPrompts}
             onSelectPrompt={handleLoadSavedPrompt}
-            onDeletePrompt={handleDeleteSavedPrompt}
+            onDeletePrompt={handleLoadSavedPrompt}
           />
         </Suspense>
       )}
