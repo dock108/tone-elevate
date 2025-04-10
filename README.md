@@ -10,23 +10,28 @@ This application leverages AI (specifically GPT-4o) to take user input and gener
 
 -   AI-powered message generation based on user input, tone (including specific "Professional" variations), and context (`Email`, `Teams Chat`, `LinkedIn Post`, `GitHub Comment`, `General Text`, `Documentation`, `Text Message`). Output is formatted as raw text.
 -   Basic message generation available without login.
--   **Polished single-column UI** for the free tier experience, with extracted components (`Header`, `InputSection`, `ConfigSection`, `ActionSection`, `OutputSection`) for better maintainability.
+-   **Polished two-column UI** for logged-in users (main content + info sidebar), single-column for logged-out.
+-   Extracted components (`Header`, `InputSection`, `ConfigSection`, `ActionSection`, `OutputSection`, `InfoCard`, etc.) for better maintainability.
 -   Clear display of generated message with copy-to-clipboard (including visual feedback) and input clearing.
--   User accounts (Supabase Auth) with optional preferences/template saving (Components exist but are lazy-loaded and not fully integrated yet).
--   **Saved Prompts:** Logged-in users can save frequently used prompts (input text, tone, context) and load them via a modal (`SavedPromptsModal`).
--   **Tone Comparison:** Logged-in users can select up to 3 tones and generate variations side-by-side for comparison (`ToneComparisonDisplay`).
+-   User accounts (Supabase Auth).
+-   **Saved Prompts:** (Logic exists, UI removed temporarily) Logged-in users can save frequently used prompts (input text, tone, context) and load them via a modal (`SavedPromptsModal`).
+-   **Tone Comparison:** Logged-in users can select up to 3 tones (5 for Premium) and generate variations side-by-side (`ToneComparisonDisplay`).
 -   **Content Length Selector:** Users can choose desired output length (Short, Medium, Long) influencing the generated text.
 -   **Quick Start Templates:** Predefined templates provide examples and starting points for users.
--   **Email Sharing:** Logged-in users can share generated content via email (requires backend setup with email provider).
--   Subscription management (Freemium model via Stripe) for potential future premium features (currently, logged-in free users have a daily limit).
+-   **Email Sharing:** (Logic exists, UI removed temporarily) Logged-in users can share generated content via email.
+-   **Premium Features (Requires Subscription):**
+    -   **Refinement:** Modify generated messages with follow-up requests (e.g., "make it shorter").
+    -   **Increased Comparison Limit:** Compare up to 5 tones (vs. 3 for free).
+    -   Unlimited message generations.
+-   Subscription management (Freemium model via Stripe) including upgrade and cancellation flows.
 -   Improved user feedback using toast notifications (`react-hot-toast`).
 -   Basic accessibility enhancements (semantic HTML, labels).
 
 ## Monetization
 
--   **Freemium Model:** Basic features are free.
--   **Premium Subscription:** Access to advanced AI models, unlimited usage, more template slots, and priority support. Implemented via Stripe.
--   **Initial Ad Integrations:** Ad placeholder and "Upgrade to Pro" CTA added to the free tier UI.
+-   **Freemium Model:** Basic features are free with usage limits.
+-   **Premium Subscription:** Access to Refinement, increased comparison limit, unlimited usage, and future premium features. Implemented via Stripe.
+-   **Info Card:** Right sidebar dynamically shows upgrade prompts, premium status, feedback, and cancellation options based on user state.
 
 ## Technical Stack
 
@@ -80,7 +85,7 @@ This application leverages AI (specifically GPT-4o) to take user input and gener
 5.  **Set up Supabase Edge Functions (if needed):**
     -   Follow Supabase docs to set up the functions directory (e.g., `supabase/functions`).
     -   We will likely place OpenAI and Stripe interactions here.
-    -   Edge Functions (`tone-suggest`, `create-checkout-session`, `stripe-webhook`) have been implemented.
+    -   Edge Functions (`tone-suggest`, `refine-output`, `cancel-subscription`, `create-checkout-session`, `stripe-webhook`) have been implemented.
 6.  **Environment Variables & Secrets:**
     -   **Frontend (.env):**
         -   Create `.env` files in `frontend/mobile` and `frontend/web` based on respective `.env.example` files.
@@ -152,8 +157,9 @@ root/
 │       │   │   ├── ActionSection.tsx
 │       │   │   ├── OutputSection.tsx
 │       │   │   ├── ToneComparisonDisplay.tsx
-│       │   │   ├── EmailShareButton.tsx
-│       │   │   ├── SavedPromptsModal.tsx (Lazy-loaded)
+│       │   │   ├── InfoCard.tsx # New Info Sidebar Card
+│       │   │   ├── EmailShareButton.tsx (Deprecated/Removed UI)
+│       │   │   ├── SavedPromptsModal.tsx (Deprecated/Removed UI)
 │       │   │   ├── PremiumSubscription.tsx (Lazy-loaded)
 │       │   │   └── UserPreferences.tsx (Lazy-loaded)
 │       │   ├── lib/        # Supabase client setup, API helpers, data (e.g., savedPromptsApi.ts, toneTemplatesData.ts)
@@ -166,10 +172,12 @@ root/
 │       ├── vite.config.ts
 │       └── package.json
 ├── supabase/         # Supabase specific files (CLI config, migrations, functions)
-│   ├── migrations/   # Contains SQL for creating tables like 'saved_prompts'
+│   ├── migrations/   # Contains SQL for creating tables like 'saved_prompts', 'profiles'
 │   └── functions/
 │       ├── _shared/
 │       ├── tone-suggest/ # Handles generation, including length param
+│       ├── refine-output/ # Handles message refinement for premium users
+│       ├── cancel-subscription/ # Handles Stripe cancellation
 │       ├── send-email/   # Handles sending email (requires setup)
 │       ├── create-checkout-session/
 │       └── stripe-webhook/

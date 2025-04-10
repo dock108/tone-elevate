@@ -51,6 +51,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SEO (Web):** Updated favicon link in `index.html` to use `tone-elevate-logo-icon.png`.
 - **SEO (Web):** Added a visually hidden (`sr-only`) but accessible `<h1>` tag to `App.tsx` for improved semantics and SEO.
 - **Project:** Created `frontend/web/public/robots.txt` file to allow search engine crawling.
+- **Backend (Edge Function `refine-output`):** Created function to handle message refinement requests from premium users, including auth, premium check, and OpenAI call.
+- **Frontend (Web):** Added Refinement UI (`textarea`, submit button, history) to `OutputSection.tsx` conditionally for premium users.
+- **Frontend (Web):** Added Refinement state (`refinementInput`, `isRefining`, `refinementHistory`) and handlers (`handleRefinementInputChange`, `handleRefinementSubmit`) to `App.tsx`.
+- **Frontend (Web):** Added state (`isPremium`) to `App.tsx` to track user premium status based on profile data.
+- **Frontend (Web):** Added logic to fetch user profile (`fetchUserProfile`) on session change to determine premium status.
+- **Frontend (Web):** Integrated Refinement feature into `ToneComparisonDisplay.tsx`, allowing selection of a variation to refine.
+- **Frontend (Web):** Added `InfoCard.tsx` component to display dynamic content (upgrade prompts, feedback, cancel) based on auth/premium status.
+- **Backend (Edge Function `cancel-subscription`):** Created function to handle Stripe subscription cancellation requests (`cancel_at_period_end: true`).
 
 ### Changed
 - **Project:** Migrated backend from Node.js/Express/Prisma to Supabase (Database, Auth, Edge Functions).
@@ -96,6 +104,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **UI Layout (Web):** Moved `ActionSection` to a fixed position at the bottom of the viewport (above ad banner).
 - **UI Layout (Web):** Increased bottom padding on the main content area (`pb-64`) for better scroll visibility.
 - **UI Layout (Web):** Updated `ActionSection` to display comparison count info separately from the main button text.
+- **UI Layout (Web):** Refactored `App.tsx` main content area into a two-column layout (left: main controls/output, right: `InfoCard`).
+- **Frontend (Web):** Updated `Header.tsx` props and UI to show premium status badge or upgrade button.
+- **Frontend (Web):** Updated `ToneComparisonDisplay.tsx` props and UI to support refinement selection.
+- **Frontend (Web):** Updated `handleRefinementSubmit` in `App.tsx` to handle refinement initiated from comparison view.
+- **Frontend (Web):** Updated `handleCancelSubscriptionClick` in `App.tsx` to include confirmation dialog and call `cancel-subscription` function.
+- **Frontend (Web):** Updated `InfoCard.tsx` to show "Cancel Subscription" instead of "Manage Subscription".
+- **Frontend (Web):** Updated `handleFeedbackClick` in `App.tsx` with correct target email address.
 
 ### Fixed
 - **Backend (Edge Function `tone-suggest`):** Corrected syntax error in `userPrompt` template literal.
@@ -112,6 +127,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Frontend (Web):** Added `overflow-x-auto` to output display (`OutputSection`) to handle long unbreakable strings without breaking page layout.
 - **Frontend (Web):** Added missing component imports in `App.tsx` after refactoring, resolving `ReferenceError`.
 - **Frontend (Web):** Corrected Supabase auth listener unsubscribe call in `App.tsx` (`authListener?.subscription?.unsubscribe()`).
+- **Frontend (Web):** Resolved issue where premium features (flair in `Header`, refinement UI in `OutputSection`) were not displayed due to missing/incorrect prop handling.
+- **Frontend (Web):** Removed redundant premium status checking logic (`checkUserPremiumStatus`) that conflicted with existing `fetchUserProfile`.
+- **Frontend (Web):** Resolved `ReferenceError` for `handleToggleSavedPromptsModal` by commenting out the prop usage in `InputSection`. 
+- **Frontend (Web):** Removed duplicate rendering of `ContentLengthSelector` for logged-in users.
+- **Frontend (Web):** Added bottom padding to main content column (`App.tsx`) to prevent fixed `ActionSection` from overlapping output. 
+- **Backend (Edge Function `tone-suggest`):** Fixed HTTP 400 errors by correctly parsing and validating the `outputLength` parameter. 
 
 ### Removed
 - **Backend:** Removed `backend/` directory and all Node.js/Express/Prisma code.
@@ -120,18 +141,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Frontend (Web):** Removed `outputFormat` state and related handler from `App.tsx`.
 - **Frontend (Web):** Removed `react-markdown` and `react-syntax-highlighter` dependencies (pending `npm uninstall`).
 - **Frontend (Web):** Removed `generationError` and `copySuccess` state variables from `App.tsx`.
+- **Frontend (Web):** Removed UI elements for Save/Load Prompt feature (`InputSection`, `ConfigSection`, `SavedPromptsModal` rendering in `App.tsx`).
+- **Frontend (Web):** Removed redundant `checkUserPremiumStatus` function from `App.tsx`.
 
 ## [0.4.0] - 2025-04-09
 
 ### Changed
 - **Core Functionality:** Refactored the core AI feature from providing "suggestions" to generating complete messages.
-- **Backend (Edge Function `tone-suggest`):**
+- **Backend (Edge Function `tone-suggest`):
     - Changed input parameters from `{text, tone}` to `{text, tone, context, outputFormat}`.
     - Updated OpenAI prompt to generate full messages based on all inputs.
     - Simplified response format to return `{ generatedMessage: "..." }` directly.
     - Adjusted rate limiting logic to query the `profiles` table via Admin client.
     - Implemented JWT verification within the function using Admin client.
-- **Frontend (Web & Mobile):**
+- **Frontend (Web & Mobile):
     - Added UI controls (select/picker) for selecting `Context` (Email, Teams, etc.) and `Output Format` (Raw Text, Markdown).
     - Renamed state variables and UI labels from "Suggestions" to "Generate Message" (e.g., `isSuggesting` -> `isGenerating`, `handleGetSuggestions` -> `handleGenerateMessage`).
     - Updated the API call (`supabase.functions.invoke`) to send the new parameters (`context`, `outputFormat`).
