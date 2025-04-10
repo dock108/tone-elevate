@@ -20,6 +20,8 @@ const MultiToneSelector: React.FC<MultiToneSelectorProps> = ({
   maxSelection,
   isLoggedIn
 }) => {
+  // Add console log here
+  console.log('[MultiToneSelector.tsx] Received props. isLoggedIn:', isLoggedIn);
 
   // Handler for checkbox changes
   const handleCheckboxChange = (event: React.ChangeEvent<HTMLInputElement>) => {

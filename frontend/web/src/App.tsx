@@ -52,6 +52,8 @@ const AuthModal = lazy(() => import('./components/AuthModal')); // Import AuthMo
 function App() {
   // --- State Variables ---
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<any | null>(null); // Add state for user profile
+  const [isPremium, setIsPremium] = useState<boolean>(false); // Add state for premium status
   const [generatedMessage, setGeneratedMessage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [userInput, setUserInput] = useState<string>('');
@@ -118,7 +120,11 @@ function App() {
   ].sort();
 
   // --- Constants ---
-  const MAX_COMPARISON_TONES = 3;
+  // const MAX_COMPARISON_TONES = 3; // Remove this static constant
+
+  // --- Derived State ---
+  const isLoggedIn = !!session?.user;
+  const maxComparisonTones = isPremium ? 5 : 3; // Define dynamic limit here
 
   // --- Effects ---
   // Set default tone and context once on mount
@@ -206,6 +212,33 @@ function App() {
     } else {
       toast.success('Logged out successfully.');
       setSession(null); // Immediately clear session state
+    }
+  };
+
+  // --- Stripe Checkout Handler ---
+  const handleUpgradeClick = async () => {
+    if (!session?.user) {
+      toast.error("You must be logged in to upgrade.");
+      return;
+    }
+
+    const toastId = toast.loading("Redirecting to checkout...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout-session');
+
+      if (error) throw new Error(`Function invocation failed: ${error.message}`);
+      if (data.error) throw new Error(`Checkout session error: ${data.error}`);
+      if (!data.url) throw new Error('Missing checkout URL from response.');
+
+      // Redirect to Stripe checkout
+      window.location.href = data.url;
+      // Toast might not be visible after redirect, but good practice to dismiss
+      toast.dismiss(toastId); 
+
+    } catch (error: any) {
+      console.error("Upgrade error:", error);
+      toast.error(`Upgrade failed: ${error.message}`, { id: toastId });
     }
   };
 
@@ -441,8 +474,10 @@ function App() {
       <Toaster position="top-center" reverseOrder={false} />
       <Header 
         session={session}
+        isPremium={isPremium}
         onLoginClick={handleOpenAuthModal}
         onLogoutClick={handleLogout}
+        onUpgradeClick={handleUpgradeClick}
       />
 
       {/* Main Content Area */}
@@ -480,25 +515,49 @@ function App() {
             isLoggedIn={!!session?.user}
           />
           {/* Show Single Tone Selector OR Multi Tone Selector */} 
-          {session?.user ? (
-            <MultiToneSelector 
+          {(() => {
+            // Add console log here
+            console.log('[App.tsx] Rendering conditional section. isLoggedIn:', !!session?.user);
+            return !!session?.user ? (
+              <MultiToneSelector
                 toneOptions={toneOptions}
                 selectedTones={comparisonTones}
-                onSelectionChange={handleComparisonToneChange}
-                maxSelection={MAX_COMPARISON_TONES}
-                isLoggedIn={!!session?.user}
-            />
-          ) : (
-             // Show original single selector if not logged in
-            <ConfigSection 
-              selectedTone={selectedTone}
-              selectedContext={selectedContext}
-              toneOptions={toneOptions}
-              contextOptions={contextOptions}
-              onToneChange={handleToneChange}
-              onContextChange={handleContextChange}
-            />
-          )}
+                onChange={handleComparisonToneChange}
+                maxSelection={maxComparisonTones} // Pass dynamic limit
+                isPremium={isPremium} // Pass premium status
+                isLoggedIn={isLoggedIn} // Add this missing prop
+              />
+            ) : ( // Logged out case
+              <>
+                <ConfigSection
+                  selectedTone={selectedTone}
+                  selectedContext={selectedContext}
+                  toneOptions={toneOptions}
+                  contextOptions={contextOptions}
+                  onToneChange={handleToneChange}
+                  onContextChange={handleContextChange}
+                />
+                {/* Add the new banner specifically for logged-out users below ConfigSection */} 
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-center">
+                  <p className="text-sm text-blue-700">
+                    Want to compare different tones side-by-side? 
+                    <button 
+                      onClick={handleOpenAuthModal} 
+                      className="font-medium underline hover:text-blue-800 ml-1"
+                    >
+                      Create an account
+                    </button> or 
+                    <button 
+                      onClick={handleOpenAuthModal} 
+                      className="font-medium underline hover:text-blue-800 ml-1"
+                    >
+                      log in
+                    </button>!
+                  </p>
+                </div>
+              </>
+            );
+          })()}
           
           {/* Show Single Output OR Comparison Output */} 
           {Object.keys(comparisonResults).length > 0 ? (
