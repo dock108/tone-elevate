@@ -1,4 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { Helmet } from 'react-helmet-async'; // Import Helmet
 import { supabase } from './lib/supabaseClient'; // Import supabase client
 import { Session } from '@supabase/supabase-js'; // Import Session type
 // Import our minimized App.css with only essential styles
@@ -426,7 +427,17 @@ function App() {
 
   // --- JSX Return ---
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-blue-50 text-gray-800 font-sans">
+    <div className="min-h-screen bg-gray-100 font-sans flex flex-col">
+      {/* === SEO Head Management === */}
+      <Helmet>
+        <title>ToneElevate - AI-Powered Communication Assistant</title>
+        <meta
+          name="description"
+          content="Struggling with a tricky message? ToneElevate crafts perfectly toned responses for email, chat & more. Get the right words for any situation."
+        />
+        {/* Add other meta tags here later if needed (e.g., keywords, open graph) */}
+      </Helmet>
+
       <Toaster position="top-center" reverseOrder={false} />
       <Header 
         session={session}
@@ -436,6 +447,11 @@ function App() {
 
       {/* Main Content Area */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-64"> {/* Changed from max-w-7xl and removed grid */}
+        {/* === SEO H1 Heading (Visually Hidden) === */}
+        <h1 className="sr-only">
+          Unsure How to Phrase It? Get AI Help Writing Messages with the Right Tone
+        </h1>
+
         {/* Left Column: Input, Config, Actions */}
         <div className="space-y-6 max-w-4xl mx-auto"> {/* Added mx-auto and max-w-4xl for centered content */}
           {/* Add a placeholder or message if user is not logged in but tries to compare? */} 

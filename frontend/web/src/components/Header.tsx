@@ -1,5 +1,6 @@
 import React from 'react';
 import { Session } from '@supabase/supabase-js'; // Import Session type
+import logoSrc from '../assets/tone-elevate-logo-full.png'; // Import the logo
 
 interface HeaderProps {
   session: Session | null; // Pass session state
@@ -10,7 +11,11 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ session, onLoginClick, onLogoutClick }) => {
   return (
     <header className="bg-white p-4 border-b flex justify-between items-center sticky top-0 z-10 shadow-sm">
-      <h1 className="text-2xl font-bold text-gray-800">ToneElevate</h1>
+      <img 
+        src={logoSrc} 
+        alt="ToneElevate logo featuring tuning sliders icon - AI message generator for crafting perfectly toned communication." 
+        className="h-10 w-auto"
+      />
       <div>
         {session?.user ? (
           // If user is logged in, show email and Logout button
