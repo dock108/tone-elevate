@@ -52,6 +52,7 @@ const AuthModal = lazy(() => import('./components/AuthModal')); // Import AuthMo
 function App() {
   // --- State Variables ---
   const [session, setSession] = useState<Session | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [profile, setProfile] = useState<any | null>(null); // Add state for user profile
   const [isPremium, setIsPremium] = useState<boolean>(false); // Add state for premium status
   const [generatedMessage, setGeneratedMessage] = useState<string | null>(null);
@@ -522,7 +523,7 @@ function App() {
               <MultiToneSelector
                 toneOptions={toneOptions}
                 selectedTones={comparisonTones}
-                onChange={handleComparisonToneChange}
+                onSelectionChange={handleComparisonToneChange}
                 maxSelection={maxComparisonTones} // Pass dynamic limit
                 isPremium={isPremium} // Pass premium status
                 isLoggedIn={isLoggedIn} // Add this missing prop
