@@ -31,6 +31,12 @@ const Header: React.FC<HeaderProps> = ({
             <span className="text-sm text-gray-600 hidden sm:inline" title={session.user.email}> { /* Hide email on small screens */}
               {session.user.email}
             </span>
+            {/* Premium Badge */} 
+            {isPremium && (
+              <span className="ml-2 px-2 py-0.5 inline-flex items-center text-xs font-semibold bg-yellow-100 text-yellow-800 rounded-full shadow-sm">
+                ⭐ Premium
+              </span>
+            )}
             {/* Conditionally render Upgrade button */} 
             {!isPremium && (
               <button
