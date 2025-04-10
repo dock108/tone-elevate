@@ -39,20 +39,23 @@ const InfoCard: React.FC<InfoCardProps> = ({
 
   const WhyPremiumSection = () => (
     <div className="p-4 bg-purple-50 border border-purple-200 rounded-md mb-4">
-      <h4 className="text-sm font-semibold text-purple-800 mb-2">Go Premium ✨</h4>
+      <h4 className="text-sm font-semibold text-purple-800 mb-2">Go Premium ✨ ($4.99/month)</h4>
       <ul className="list-disc list-inside text-xs text-purple-700 space-y-1">
         <li>Refine generated messages with follow-up requests.</li>
         <li>Compare up to 5 tone variations (vs. 3 for free users).</li>
         <li>Access to future premium-only features.</li>
         <li>Support the development of ToneElevate!</li>
       </ul>
-      {!isPremium && isLoggedIn && ( // Show upgrade button only if logged in and not premium
+      {!isPremium && isLoggedIn && (
          <button
            onClick={onUpgradeClick}
            className="mt-3 w-full px-3 py-1.5 text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded hover:from-purple-600 hover:to-pink-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition duration-150 ease-in-out shadow-sm"
          >
            Upgrade to Premium
          </button>
+      )}
+      {!isLoggedIn && (
+          <p className="text-xs text-gray-500 mt-3 text-center">Premium will be $4.99/month after the beta period.</p>
       )}
     </div>
   );
@@ -90,6 +93,12 @@ const InfoCard: React.FC<InfoCardProps> = ({
       {isLoggedIn && !isPremium && (
         <>
           <WhyPremiumSection /> {/* Includes upgrade button */}
+          {/* Add Beta Disclaimer for Logged-in, Non-Premium Users */}
+          <p className="text-xs text-gray-500 italic text-center px-2 mb-4"> 
+             Note: Stripe integration is currently in sandbox (beta) mode. You can test the checkout process,
+             but no real charges will occur. All test subscriptions will be cancelled after the beta period
+             unless you explicitly opt-in later.
+           </p>
           <FeedbackButton />
         </>
       )}
@@ -100,6 +109,12 @@ const InfoCard: React.FC<InfoCardProps> = ({
              <h4 className="text-sm font-semibold text-green-800">Premium Active ✨</h4>
              <p className="text-xs text-green-700 mt-1">You have access to all features!</p>
           </div>
+          {/* Updated Beta Disclaimer for Premium Users */}
+          <p className="text-xs text-gray-500 italic text-center px-2 mb-4"> 
+            Note: Stripe integration is currently in sandbox (beta) mode. No real charges have occurred.
+            Your current subscription will be cancelled after the beta period unless you explicitly opt-in later.
+          </p>
+          {/* Swapped order */}
           <FeedbackButton />
           <CancelSubscriptionButton />
         </>

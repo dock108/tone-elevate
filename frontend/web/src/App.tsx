@@ -232,30 +232,37 @@ function App() {
     }
   };
 
-  // --- Stripe Checkout Handler ---
+  // --- Upgrade Click Handler (Calls Edge Function) ---
   const handleUpgradeClick = async () => {
-    if (!session?.user) {
-      toast.error("You must be logged in to upgrade.");
-      return;
-    }
-
-    const toastId = toast.loading("Redirecting to checkout...");
-
+    setIsUpgrading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout-session');
+      // Ensure we have a session token to include
+      const session = await supabase.auth.getSession();
+      if (!session?.data?.session?.access_token) {
+        throw new Error("Not authenticated. Please log in.");
+      }
 
-      if (error) throw new Error(`Function invocation failed: ${error.message}`);
-      if (data.error) throw new Error(`Checkout session error: ${data.error}`);
-      if (!data.url) throw new Error('Missing checkout URL from response.');
+      // Invoke the Edge Function, sending just the access token
+      // The Edge Function expects this and will handle the Bearer prefix
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        headers: {
+          Authorization: `Bearer ${session.data.session.access_token}`,
+        }
+        // Body is not needed for this function
+      });
 
-      // Redirect to Stripe checkout
+      if (error) throw new Error(error.message || 'Function invocation failed');
+      if (data.error) throw new Error(data.error); // Handle error returned from function logic
+      if (!data.url) throw new Error("Checkout URL missing from response.");
+
+      // Redirect user to Stripe Checkout page
       window.location.href = data.url;
-      // Toast might not be visible after redirect, but good practice to dismiss
-      toast.dismiss(toastId); 
-
+      // Toast will be dismissed by navigation
     } catch (error: any) {
       console.error("Upgrade error:", error);
       toast.error(`Upgrade failed: ${error.message}`, { id: toastId });
+    } finally {
+      setIsUpgrading(false);
     }
   };
 
