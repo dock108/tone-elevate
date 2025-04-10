@@ -36,8 +36,15 @@ serve(async (req) => {
     // 2. Verify User Authentication (Check Authorization header)
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) throw new Error('Missing Authorization header');
+    console.log('Auth header received:', authHeader.substring(0, 15) + '...');
+    
     const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(authHeader.replace('Bearer ', ''));
-    if (userError || !user) throw new Deno.errors.PermissionDenied("Invalid JWT.");
+    if (userError) {
+      console.error('JWT validation error:', userError);
+      throw new Deno.errors.PermissionDenied(`Invalid JWT: ${userError.message}`);
+    }
+    if (!user) throw new Deno.errors.PermissionDenied("User not found in JWT.");
+    
     const userId = user.id;
     const userEmail = user.email;
     console.log('Request authenticated for user:', userId, userEmail);

@@ -57,6 +57,7 @@ function App() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_profile, _setProfile] = useState<any | null>(null); // Prefixed
   const [isPremium, setIsPremium] = useState<boolean>(false);
+  const [isUpgrading, setIsUpgrading] = useState<boolean>(false); // Add missing state for upgrade button
   const [generatedMessage, setGeneratedMessage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [userInput, setUserInput] = useState<string>('');
@@ -223,18 +224,32 @@ function App() {
   };
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast.error(`Logout failed: ${error.message}`);
-    } else {
-      toast.success('Logged out successfully.');
-      setSession(null); // Immediately clear session state
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        if (error.message.includes('session missing')) {
+          // Session is already gone, just clear local state
+          setSession(null);
+          toast.success('Logged out successfully.');
+        } else {
+          toast.error(`Logout failed: ${error.message}`);
+        }
+      } else {
+        toast.success('Logged out successfully.');
+        setSession(null); // Immediately clear session state
+      }
+    } catch (e) {
+      console.error('Logout error:', e);
+      // Force local logout even if API call failed
+      setSession(null);
+      toast.warning('Forced logout - session may have already expired');
     }
   };
 
   // --- Upgrade Click Handler (Calls Edge Function) ---
   const handleUpgradeClick = async () => {
     setIsUpgrading(true);
+    const toastId = toast.loading('Processing upgrade request...');
     try {
       // Ensure we have a session token to include
       const session = await supabase.auth.getSession();
@@ -373,9 +388,7 @@ function App() {
     if (isValidTone && isValidContext) {
       toast.success(`Loaded prompt "${prompt.name}".`);
     } else {
-      toast.success("Prompt deleted.", { id: toastId });
-      // Remove the prompt from the local state
-      setSavedPrompts(prev => prev.filter(p => p.id !== promptId));
+      toast.warning("Loaded prompt with some invalid settings. Default settings applied where needed.");
     }
   };
 
