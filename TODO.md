@@ -80,6 +80,15 @@ This document outlines the initial tasks required to build the MVP for ToneEleva
 25k. **[Backend]** Create `send-email` function structure (requires 3rd party setup). [✅ COMPLETE - 2025-04-09]
 25l. **[UI-Web]** Add `EmailShareButton` and integrate logic/state. [✅ COMPLETE - 2025-04-09]
 25m. **[UI-Web]** Adjust component layout (`ToneTemplates`, fixed `ActionSection`, padding). [✅ COMPLETE - 2025-04-09]
+
+### Phase 3.9: Basic SEO Implementation [✅ COMPLETE - 2025-04-10]
+31a. **[SEO-Web]** Add `react-helmet-async` for head management. [✅ COMPLETE]
+31b. **[SEO-Web]** Set dynamic `<title>` and `<meta name="description">` in `App.tsx`. [✅ COMPLETE]
+31c. **[SEO-Web]** Update header to use logo image with descriptive `alt` text. [✅ COMPLETE]
+31d. **[SEO-Web]** Update favicon in `index.html`. [✅ COMPLETE]
+31e. **[SEO-Web]** Add visually hidden `<h1>` to `App.tsx`. [✅ COMPLETE]
+31f. **[Project]** Add `robots.txt` to allow crawling. [✅ COMPLETE]
+
 26. **[Cleanup]** Uninstall unused dependencies (`react-markdown`, `react-syntax-highlighter`). [⏳ PENDING]
 27. **[Testing]** Write tests for Supabase Edge Functions (e.g., using Deno test runner). [⏳ PENDING]
 28. **[Testing]** Perform end-to-end testing for core flows (Auth, Message Generation, **Compare Tones**, **Content Length**, Subscription, Preferences, Saved Prompts, **Email Share**). [⏳ PENDING]

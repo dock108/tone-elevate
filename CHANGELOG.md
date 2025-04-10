@@ -45,6 +45,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Frontend (Web):** Added `ContentLengthSelector.tsx` component to allow users to select desired output length (Short, Medium, Long).
 - **Backend (Edge Function):** Outlined `send-email` Edge Function structure (requires external email provider like Resend/SendGrid).
 - **Frontend (Web):** Created `EmailShareButton.tsx` component with modal for logged-in users to send generated content via email.
+- **SEO (Web):** Added `react-helmet-async` dependency for managing document head tags.
+- **SEO (Web):** Implemented dynamic `<title>` and `<meta name="description">` tags in `App.tsx` via Helmet.
+- **SEO (Web):** Replaced text header with logo image (`tone-elevate-logo-full.png`) in `Header.tsx` and added descriptive alt text.
+- **SEO (Web):** Updated favicon link in `index.html` to use `tone-elevate-logo-icon.png`.
+- **SEO (Web):** Added a visually hidden (`sr-only`) but accessible `<h1>` tag to `App.tsx` for improved semantics and SEO.
+- **Project:** Created `frontend/web/public/robots.txt` file to allow search engine crawling.
 
 ### Changed
 - **Project:** Migrated backend from Node.js/Express/Prisma to Supabase (Database, Auth, Edge Functions).
