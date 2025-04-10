@@ -1,6 +1,12 @@
 # Allow all ethical web crawlers access to the site.
+# We want our content to be discoverable by search engines.
+
 User-agent: *
 Allow: /
 
-# Optionally, add a sitemap location later if you generate one
-# Sitemap: https://toneelevate.com/sitemap.xml
+# You can add disallow rules later if specific paths should be excluded.
+# Example: Disallow: /admin/
+# Example: Disallow: /private/
+
+# Optionally, specify the sitemap location (replace with your actual URL):
+# Sitemap: https://www.toneelevate.app/sitemap.xml
