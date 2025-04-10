@@ -1,7 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async'; // Import Helmet
 import { supabase } from './lib/supabaseClient'; // Import supabase client
-import { Session } from '@supabase/supabase-js'; // Import Session type
+import { Session, User } from '@supabase/supabase-js'; // Import Session AND User types
 // Import our minimized App.css with only essential styles
 import './App.css';
 
@@ -455,30 +455,51 @@ function App() {
   useEffect(() => {
     const fetchUserProfile = async (user: User | undefined) => {
       if (!user) {
-        _setProfile(null); // Use prefixed setter
+        _setProfile(null); 
         setIsPremium(false);
-        setSavedPrompts([]); // Clear prompts if user logs out
-        // toast.error(`Error fetching user profile: ${error.message}`);
-        _setProfile(null); // Use prefixed setter
-        setIsPremium(false);
+        setSavedPrompts([]); 
+        return; // Ensure we exit here if no user
       }
+      
+      // Fetch saved prompts here since we need the user ID (moved from separate effect)
+      handleFetchSavedPrompts(user.id); 
 
-      if (data) {
-        _setProfile(data); // Use prefixed setter
-        setIsPremium(data.is_premium || false);
-      } else {
-        // Profile might not exist yet for a new user, or RLS hides it
-        _setProfile(null); // Use prefixed setter
+      // Restore the try/catch and query
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, is_premium') // Fetch only needed fields
+          .eq('id', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116: row not found
+          throw error;
+        }
+
+        if (data) { // Now data is defined
+          _setProfile(data); 
+          setIsPremium(data.is_premium || false);
+        } else {
+          // Profile might not exist yet for a new user, or RLS hides it
+          _setProfile(null); 
+          setIsPremium(false);
+        }
+      } catch (error: any) {
+        console.error("Error fetching user profile:", error); 
+        _setProfile(null); 
         setIsPremium(false);
+        // Optionally show a toast
+        // toast.error(`Error fetching user profile: ${error.message}`);
       }
     };
 
+    // This part correctly calls the async function
     if (session?.user) {
       fetchUserProfile(session.user);
     } else {
       fetchUserProfile(undefined);
     }
-  }, [session]);
+  }, [session]); // Re-run when session changes
 
   // --- JSX Return ---
   return (
