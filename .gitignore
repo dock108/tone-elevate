@@ -169,3 +169,18 @@ Thumbs.db
 frontend/mobile/ios/
 frontend/mobile/android/
 frontend/web/tsconfig.json
+
+# Capacitor / Native
+/ios/
+/android/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

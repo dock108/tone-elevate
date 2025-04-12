@@ -1,11 +1,15 @@
 {
   "devDependencies": {
+    "@capacitor/cli": "^7.2.0",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.3",
     "supabase": "^2.20.5",
-    "tailwindcss": "^4.1.2"
+    "tailwindcss": "^4.1.2",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@capacitor/core": "^7.2.0",
+    "@capacitor/ios": "^7.2.0",
     "@react-native-picker/picker": "2.9.0",
     "expo": "^52.0.44",
     "expo-clipboard": "~7.0.1",
