@@ -222,18 +222,18 @@ function App() {
 
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
         if (error.message.includes('session missing')) {
           // Session is already gone, just clear local state
           setSession(null);
           toast.success('Logged out successfully.');
         } else {
-          toast.error(`Logout failed: ${error.message}`);
+      toast.error(`Logout failed: ${error.message}`);
         }
-      } else {
-        toast.success('Logged out successfully.');
-        setSession(null); // Immediately clear session state
+    } else {
+      toast.success('Logged out successfully.');
+      setSession(null); // Immediately clear session state
       }
     } catch (e) {
       console.error('Logout error:', e);
@@ -289,7 +289,7 @@ function App() {
       toast.error('Failed to load saved prompts.');
       console.error("Error fetching saved prompts:", error);
     } finally {
-      setIsLoadingPrompts(false);
+    setIsLoadingPrompts(false);
     }
   };
 
@@ -645,39 +645,39 @@ function App() {
         isUpgrading={isUpgrading}
       />
 
-      {/* Main Content Area - Two Column Layout */}
-      <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content Area - Remove bottom margin */}
+      <main className="flex-grow container mx-auto p-4 md:p-6 lg:p-8 pb-[env(safe-area-inset-bottom)]">
         {/* === SEO H1 Heading (Visually Hidden) === */}
         <h1 className="sr-only">
           Unsure How to Phrase It? Get AI Help Writing Messages with the Right Tone
         </h1>
 
         <div className="lg:grid lg:grid-cols-3 lg:gap-8">
-          {/* Left Column (takes 2/3 on large screens) */}
-          <div className="lg:col-span-2 space-y-6 mb-8 lg:mb-0 pb-24">
+          {/* Left Column (takes 2/3 on large screens) - Add lg:pb-24 */}
+          <div className="lg:col-span-2 space-y-6 mb-8 lg:mb-0 lg:pb-24">
 
-            {/* Add a placeholder or message if user is not logged in but tries to compare? */}
+          {/* Add a placeholder or message if user is not logged in but tries to compare? */} 
             {/* This might be redundant now with the InfoCard */}
             {/* {!session?.user && (
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                    <p className="text-sm text-yellow-700">
-                       ✨ <button onClick={handleOpenAuthModal} className="font-medium underline hover:text-yellow-800">Log in or Sign up</button> to compare multiple tone variations side-by-side!
-                    </p>
-                </div>
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+                  <p className="text-sm text-yellow-700">
+                     ✨ <button onClick={handleOpenAuthModal} className="font-medium underline hover:text-yellow-800">Log in or Sign up</button> to compare multiple tone variations side-by-side!
+                  </p>
+              </div>
             )} */}
 
             {/* Tone Templates Section */}
-            <ToneTemplates
-              templates={toneTemplatesData}
-              onSelectTemplate={handleSelectToneTemplate}
-            />
+          <ToneTemplates
+            templates={toneTemplatesData}
+            onSelectTemplate={handleSelectToneTemplate}
+          />
 
             {/* Input Section */}
-            <InputSection 
-              userInput={userInput}
-              onUserInputChange={handleUserInputChange}
-              onClearInput={handleClearInput}
-              maxLength={MAX_INPUT_LENGTH}
+          <InputSection 
+            userInput={userInput}
+            onUserInputChange={handleUserInputChange}
+            onClearInput={handleClearInput}
+            maxLength={MAX_INPUT_LENGTH}
               // Remove the unused props
             />
 
@@ -686,23 +686,23 @@ function App() {
               // Add console log here
               // console.log('[App.tsx] Rendering conditional section. isLoggedIn:', !!session?.user);
               return !!session?.user ? (
-                <MultiToneSelector
-                  toneOptions={toneOptions}
-                  selectedTones={comparisonTones}
-                  onSelectionChange={handleComparisonToneChange}
+            <MultiToneSelector 
+                toneOptions={toneOptions}
+                selectedTones={comparisonTones}
+                onSelectionChange={handleComparisonToneChange}
                   maxSelection={maxComparisonTones} // Pass dynamic limit
                   isLoggedIn={isLoggedIn} 
-                />
+            />
               ) : ( // Logged out case
                 <>
-                  <ConfigSection
-                    selectedTone={selectedTone}
-                    selectedContext={selectedContext}
-                    toneOptions={toneOptions}
-                    contextOptions={contextOptions}
-                    onToneChange={handleToneChange}
-                    onContextChange={handleContextChange}
-                  />
+            <ConfigSection 
+              selectedTone={selectedTone}
+              selectedContext={selectedContext}
+              toneOptions={toneOptions}
+              contextOptions={contextOptions}
+              onToneChange={handleToneChange}
+              onContextChange={handleContextChange}
+            />
                   {/* Content Length Selector now part of ConfigSection group for logged-out */}
                   {/* <div className="mt-4">
                       <ContentLengthSelector 
@@ -723,7 +723,7 @@ function App() {
               </div>
 
             {/* Output Area (Single or Comparison) */}
-            {Object.keys(comparisonResults).length > 0 ? (
+          {Object.keys(comparisonResults).length > 0 ? (
                 <ToneComparisonDisplay 
                   results={comparisonResults} 
                   // --- Refinement Props for Comparison ---
@@ -736,12 +736,12 @@ function App() {
                   selectedComparisonForRefinement={selectedComparisonForRefinement} // Pass down selected ID
                   onSelectComparisonForRefinement={handleSelectComparisonForRefinement} // Pass down handler
                 /> 
-            ) : (
-                <OutputSection 
-                  generatedMessage={generatedMessage}
-                  isGenerating={isGenerating}
-                  copyButtonText={copyButtonText}
-                  onCopyToClipboard={handleCopyToClipboard}
+          ) : (
+              <OutputSection 
+                generatedMessage={generatedMessage}
+                isGenerating={isGenerating}
+                copyButtonText={copyButtonText}
+                onCopyToClipboard={handleCopyToClipboard}
                   // --- Refinement Props ---
                   isPremium={isPremium}
                   isRefining={isRefining}

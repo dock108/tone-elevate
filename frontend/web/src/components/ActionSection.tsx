@@ -22,7 +22,7 @@ const ActionSection: React.FC<ActionSectionProps> = ({
   const showComparisonInfo = comparisonToneCount > 0;
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200"> { /* Add background and padding */}
+    <div className="bg-gradient-to-t from-gray-100 via-gray-100 to-transparent pt-4 pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-center space-x-4"> { /* Flex container */}
         <button
           onClick={onGenerate}

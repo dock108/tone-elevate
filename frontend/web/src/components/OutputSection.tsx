@@ -141,9 +141,6 @@ const OutputSection: React.FC<OutputSectionProps> = ({
         </div>
       )}
 
-      {/* Spacer for fixed bottom elements on mobile when premium section is visible */}
-      {isPremium && generatedMessage && <div className="h-20 md:h-0"></div>} 
-
     </div>
   );
 };
