@@ -18,11 +18,6 @@ const InfoCard: React.FC<InfoCardProps> = ({
   onFeedbackClick,
 }) => {
 
-  // Derived state or helper functions specific to InfoCard can go here
-  const showLoginPrompt = !isLoggedIn;
-  const showUpgradePrompt = isLoggedIn && !isPremium;
-  const showPremiumActive = isLoggedIn && isPremium;
-
   // --- Section Components (Internal) ---
 
   const WhySignUpSection = () => (
